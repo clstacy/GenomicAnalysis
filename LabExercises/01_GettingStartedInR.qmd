@@ -1,7 +1,6 @@
 ---
 title: "Getting Started in R and RStudio"
-author: 
-  - name: Jeffrey Lewis & Carson Stacy
+author: Jeffrey Lewis & Carson Stacy
 date: "`r Sys.Date()`"
 format: 
   html: 
@@ -129,7 +128,7 @@ This dataset includes the log fold changes of gene expression in an experiment t
 
 2.  Which gene has the highest log fold change in the *msn2/4ΔΔ* mutant EtOH response?
 
-3.  How many HSP genes are differentially expressed (FDR \< 0.01) in unstressed conditions for the mutant?
+3.  How many HSP genes are differentially expressed (FDR < 0.01) in unstressed conditions for the mutant?
 
 4.  Do the genes with the largest magnitude fold changes have the smallest p-values?
 
