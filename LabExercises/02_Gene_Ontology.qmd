@@ -25,7 +25,7 @@ Packages only need to be installed once, but they need to be loaded every time y
 
 ### Install Packages
 
-The following code installs all of the packages used in this document -- if not already installed -- and then loads the packages into R. We need to install packages specific to our gene ontology bioinformatic analysis. Many of these packages aren't available on the R CRAN package repository, instead they are hosted on the BioConductor repository, a repository that is focused on packages used in biological research. Today, we need to install the package clusterProfiler with the code below. The `pak()` function will check the bioconductor repository if the package isn't on CRAN
+The following code installs all of the packages used in this document -- if not already installed -- and then loads the packages into R. We need to install packages specific to our gene ontology bioinformatic analysis. Many of these packages aren't available on the R CRAN package repository, instead they are hosted on the BioConductor repository, a repository that is focused on packages used in biological research. Today, we need to install the package `clusterProfiler` with the code below.
 
 ::: callout-important
 ## Some Packages Need Compiled
@@ -34,7 +34,7 @@ If you are using your own Mac,
 
 1.  Open a terminal window
 
-    -   Click Spotlight search in the top right of your screen, then search for \"Terminal\"
+    -   Click Spotlight search in the top right of your screen, then search for "Terminal"
 
 2.  Copy and paste the following into the terminal, then press enter.
 
@@ -56,7 +56,7 @@ If you are using **Windows**,
 
 3.  Run the file to install, following all onscreen instructions. If you are unsure about anything, leave the default settings.
 
-4.  
+4.  Run `Sys.which("make")` and see if it finds a make.exe file. If so, you’re good to go. If not, do the path stuff.
 
 5.  [Go back to this page](https://cran.r-project.org/bin/windows/Rtools/). Follow the remaining instructions.
 
@@ -70,13 +70,17 @@ if (!require("pak")) install.packages("pak"); library(pak)
 pak(c("tidyverse", "here", "knitr", "dplyr", # already downloaded last activity
        "readr","pander", "BiocManager", # also from last activity
        "janitor", # for cleaning column names
-      # "igraph", 
-       "tidytree", # dependencies that require explicit download on latest Mac OS
-       "ggVennDiagram", # visualization venn diagram
-       "clusterProfiler", # for GO enrichment
-       "AnnotationDbi", # database of common genome annotations
-       "org.Sc.sgd.db") # annotation database for S. cerevesiae
-       )
+       "igraph@2.1.2", # dependency
+       "tidytree", 
+       "ggVennDiagram" # visualization venn diagram
+       ))
+
+# update Bioconductor, run this if you get an error downloading the below packages
+# BiocManager::install()
+
+# install Bioconductor packages
+BiocPkgs <- c("fgsea","clusterProfiler", "AnnotationDbi", "org.Sc.sgd.db")
+BiocManager::install(setdiff(BiocPkgs, rownames(installed.packages())))
 ```
 
 ### Load packages
@@ -103,30 +107,32 @@ msn24_EtOH = readr::read_tsv(DE_data_url)
 
 ## Create a Differentially Expressed (DE) Gene List
 
-We need a list of differentially expressed genes to test for over (or under) enrichment of functional GO terms. Here, we choose genes with significantly (FDR\<0.05) higher expression (log2 fold change (logFC) greater than 1) in the *msn2/4ΔΔ* mutant's EtOH response compared to the EtOH response of the wild-type strain (positive values in the logFC column of WT vs *msn2/4ΔΔ*: EtOH response).
+We need a list of differentially expressed genes to test for over (or under) enrichment of functional GO terms. Here, we choose genes with significantly (FDR\<0.05) higher expression (log2 fold change (logFC) greater than 1) in the EtOH treated wild-type cells unstressed wild-type control cells (positive values in the logFC column of WT EtOH response).
 
 ```{r}
 # subset data to just genes with significant fdr & log2FC>1
 msn24_EtOH |>
-  filter(logFC_WT.vs.msn24dd_EtOH_response > 1 & 
-           fdr_WT.vs.msn24dd_EtOH_response < 0.05)
+  filter(logFC_YPS606_WT_etoh_response > 1 & 
+         fdr_YPS606_WT_EtOH_response < 0.05)
 ```
 
 ```{r}
 #  Save results to a new variable:
-DE_genes_upregulated_msn24_EtOH <- msn24_EtOH |>
-  filter(logFC_WT.vs.msn24dd_EtOH_response > 1 & 
-         fdr_WT.vs.msn24dd_EtOH_response < 0.05) |>
+DE_genes_upregulated_WT_EtOH <- msn24_EtOH |>
+  filter(logFC_YPS606_WT_etoh_response > 1 & 
+         fdr_YPS606_WT_EtOH_response < 0.05) |>
   pull(gene_id) # extract gene names
 ```
 
 ## GO Term Enrichment Analysis
 
-Now we have a list of genes (saved as DE_genes_upregulated_msn24_EtOH) that we want to perform GO term enrichment on. Let's do that now, using the clusterProfiler package's `enrichGO` function. This function takes a list of genes, an organism database, and the type of GO term (e.g., Biological Process, Cellular Component, Molecular Function) as arguments. We will use the `org.Sc.sgd.db` database, which is the annotation database for *Saccharomyces cerevisiae*.
+Now we have a list of genes (saved as DE_genes_upregulated_WT_EtOH) that we want to perform GO term enrichment on. We can do this using the clusterProfiler package's `enrichGO` function. This function takes a list of genes, an organism database, and the type of GO term (e.g., Biological Process, Cellular Component, Molecular Function) as arguments. We will use the `org.Sc.sgd.db` database, which is the annotation database for *Saccharomyces cerevisiae*.
 
+
+### Upregulated - GO Enrichments for Genes with Increased Expression in Ethanol Stress
 ```{r}
-GO_msn24_EtOH_up_results <- enrichGO(
-  gene = DE_genes_upregulated_msn24_EtOH,
+GO_WT_EtOH_up_results <- enrichGO(
+  gene = DE_genes_upregulated_WT_EtOH,
   OrgDb = "org.Sc.sgd.db",
   universe = msn24_EtOH$gene_id,
   keyType = "ORF",
@@ -140,17 +146,56 @@ Now, we can look at the results in table form.
 
 ```{r, eval=FALSE}
 # open up the results in a data frame to examine
-GO_msn24_EtOH_up_results |>
+GO_WT_EtOH_up_results |>
   as_tibble() |>
   View()
 
 # Here is how we could write this result into a text file:
-GO_msn24_EtOH_up_results |>
+GO_WT_EtOH_up_results |>
   as_tibble() |>
-  write_tsv(file = "~/Desktop/GO_msn24_EtOH_up_results.tsv")
+  write_tsv(file = "~/Desktop/GO_WT_EtOH_up_results.tsv")
 ```
 
-Now we can visualize the enrichment results, which shows us gene ontology categories that are enriched in genes with higher expression (upregulated) in the WT vs *msn2/4ΔΔ*: EtOH response.
+
+### Downregulated - GO Enrichments for Genes with Decreased Expression in Ethanol Stress
+
+```{r}
+# create a list of genes to test for enrichment
+DE_genes_downregulated_WT_EtOH <- msn24_EtOH |>
+  filter(logFC_YPS606_WT_etoh_response < -1 & 
+         fdr_YPS606_WT_EtOH_response < 0.05) |>
+  pull(gene_id) # extract gene names
+
+# Run GO enrichment analysis
+GO_WT_EtOH_down_results <- enrichGO(
+  gene = DE_genes_downregulated_WT_EtOH,
+  OrgDb = "org.Sc.sgd.db",
+  universe = msn24_EtOH$gene_id,
+  keyType = "ORF",
+  ont= "BP"
+) |>
+  # let's add a 'richFactor' column that gives us the proportion of genes DE in the term
+  mutate(richFactor = Count / as.numeric(sub("/\\d+", "", BgRatio)))
+```
+
+Now, we can look at the results in table form.
+
+```{r, eval=FALSE}
+# open up the results in a data frame to examine
+GO_WT_EtOH_down_results |>
+  as_tibble() |>
+  View()
+
+# Here is how we could write this result into a text file:
+GO_WT_EtOH_down_results |>
+  as_tibble() |>
+  write_tsv(file = "~/Desktop/GO_WT_EtOH_down_results.tsv")
+```
+
+
+### Visualize GO Results
+
+Now we can visualize the enrichment results, to show gene ontology category enrichments. This example will show genes with higher expression (upregulated) in the WT EtOH response.
 
 ```{r}
 #| layout-nrow: 2
@@ -158,13 +203,13 @@ Now we can visualize the enrichment results, which shows us gene ontology catego
 #| fig-height: 4
 #| fig-cap: 
 #|   - "Default GO Enrichment plot"
-#|   - "GO Enrichment of upregulated genes in *msn2/4ΔΔ* EtOH response"
+#|   - "GO Enrichment of upregulated genes in EtOH response"
 
 # a simple visualization
-plot(barplot(GO_msn24_EtOH_up_results, showCategory = 10))
+plot(barplot(GO_WT_EtOH_up_results, showCategory = 10))
 
 # a more complicated visualization, with more information density
-ggplot(GO_msn24_EtOH_up_results,
+ggplot(GO_WT_EtOH_up_results,
        showCategory = 15,
        aes(richFactor, fct_reorder(Description, richFactor))) +
   geom_segment(aes(xend = 0, yend = Description)) +
@@ -196,7 +241,7 @@ if (!dir.exists(dir_visualization)) {
 }
 
 # type ?ggsave in the console for more information via the help page.
-ggsave(filename = "GO_BP_msn24_EtOH_up_results_lollipopPlot.pdf", 
+ggsave(filename = "GO_BP_WT_EtOH_up_results_lollipopPlot.pdf", 
   plot = last_plot(), 
   device = "pdf", # "png", "eps", "ps", "tex" (pictex), "pdf", "jpeg", "tiff", "png", "bmp", "svg" or "wmf" (windows only).
   # note that pdf, eps, svg are vector/line art, so zooming doesn't pixelate.
@@ -211,19 +256,21 @@ ggsave(filename = "GO_BP_msn24_EtOH_up_results_lollipopPlot.pdf",
 
 Recall that when we Render this Quarto notebook, we keep a copy of the plots/images there as well, in the same place as the code and analysis used to generate it. However, we may want a higher resolution file of just the image, or the image in a different format. In this case, saving the plot is a useful option for us. The journal Science has the following [recommendations](https://www.science.org/do/10.5555/page.2385607/full/author_figure_prep_guide_2022-1689707679870.pdf): "We prefer prefer ai, eps, pdf, layered psd, tif, and jpeg files. ...minimum file resolution of 300 dpi."
 
+
 # The Hypergeometric Distribution in practice
 
-Notice that the DNA integration process does not have very many genes in the category, but they appear to be highly present in the the upregulated gene list. Specifically, `r GO_msn24_EtOH_up_results |> as_tibble() |> filter(ID == "GO:0006551") |> pull(GeneRatio) |> cat()` DE genes have this GO term, where in the entire genome, there are only `r GO_msn24_EtOH_up_results |> as_tibble() |> filter(ID == "GO:0006551") |> mutate(tmp = as.numeric(sub("/\\d+", "", BgRatio))) |> pull(tmp) |> cat()` genes. What are the odds that we see this by random chance? let's do the math:
+Where do these p-values come from? The hypergeometric distribution is a probability distribution from statistics that is relevant here. In this case, we are looking at the probability of drawing a certain number of genes with a specific GO term in a list of DE genes, given the total number of genes in the genome.
+Notice that the proteolysis term is identified as enriched among upregulated genes. Specifically, 137 DE genes have this GO term, where in the entire genome, there are only 5536 annotated genes. Of those, only 403 are annotated with the term "proteolysis". What are the odds that we see this by random chance? let's do the math:
 
 ```{r prepare-phyper}
-# number of genes that have GO:0006551 (Leucine Metabolic Process)
-leucine_genes = 10
+# number of genes that have GO:0006508 (Proteolysis)
+proteolysis_genes = 403
 
-# number of genes that are DE (msn2/4 EtOH response, logFC>1)
-DE_genes = 91
+# number of genes that are DE (WT EtOH response, logFC>1)
+DE_genes = 1113
 
-# number of genes that are both DE and Leucine Metabolism genes
-Overlap = 3
+# number of genes that are both DE and Proteolysis genes
+Overlap = 137
 
 # total number of genes in experiment
 total = 5536 # number of genes in genome
@@ -238,7 +285,7 @@ phyper(q = Overlap-1, # number of integration genes that were DE
                       # without equality, so have to do one less
        m = DE_genes, # number of DE genes
        n = total-DE_genes, # number of non DE genes
-       k = leucine_genes, # number of observed DE integration genes
+       k = proteolysis_genes, # number of observed DE integration genes
        lower.tail = FALSE) # the probability that X > x
 ```
 
@@ -247,11 +294,12 @@ phyper(q = Overlap-1, # number of integration genes that were DE
 phyper(q = Overlap, # number of integration genes that were DE
        m = DE_genes, # number of DE genes
        n = total-DE_genes, # number of non DE genes
-       k = leucine_genes, # number of observed DE DNA integration genes
+       k = proteolysis_genes, # number of observed DE DNA integration genes
        lower.tail = TRUE) # the probability that X <= x
 ```
 
 As we see, there is strong evidence that the number of genes with this GO term is unlikely to be seen due to chance. In layman's terms, this GO term is enriched in upregulated genes in this contrast. The test for underrepresenation shows there is no support for a hypothesis that this gene is underrepresented in the DE gene list.
+
 
 ## Fisher's Exact Test
 
@@ -259,25 +307,24 @@ Interestingly, the hypergeometric distribution is the same thing as the Fisher's
 
 ```{r}
 #fisher test for overrepresentation
-fisher.test(matrix(c(Overlap, DE_genes-Overlap, leucine_genes-Overlap, total-DE_genes-leucine_genes + Overlap), 2, 2), alternative='greater')$p.value
+fisher.test(matrix(c(Overlap, DE_genes-Overlap, proteolysis_genes-Overlap, total-DE_genes-proteolysis_genes + Overlap), 2, 2), alternative='greater')$p.value
 
 #fisher test for underrepresentation
-fisher.test(matrix(c(Overlap, DE_genes-Overlap, leucine_genes-Overlap, total-DE_genes-leucine_genes + Overlap), 2, 2), alternative='less')$p.value
+fisher.test(matrix(c(Overlap, DE_genes-Overlap, proteolysis_genes-Overlap, total-DE_genes-proteolysis_genes + Overlap), 2, 2), alternative='less')$p.value
 ```
 
 How does the p-value that we get from this test compare to the results table? They should match.
 
 <br><br><br><br>
 
-# Now it is your turn
+# Practice working with data
 
 Try running your own GO enrichment with a different gene list. Some options could be:
 
--   Start with the WT vs *msn2/4ΔΔ*: EtOH response again, and this time change to "downregulated" (i.e., genes with higher expression in the wild-type strain compared to the *msn2/4ΔΔ* mutant). These would potentially include genes with defective induction.
--   See what happens when you change the FDR threshold from a less stringet one (0.05) to a more conservative one (0.01).
+-   See what happens when you change the FDR threshold from a less stringent one (0.05) to a more conservative one (0.01).
 -   Try different logFC cutoffs.
--   Look at different comparisons in the data file (there are 5 total)
--   Look at a different GO category (we only looked at BP, not MF or CC)
+-   Look at different comparisons in the data file (there are 5 total). E.g., compare the EtOH response between WT and *msn2/4ΔΔ* , and this time change to "downregulated" (i.e., genes with higher expression in the wild-type strain compared to the *msn2/4ΔΔ* mutant). These would potentially include genes with defective induction.
+-   Try to look at a different GO category (we only looked at BP, not MF or CC)
 -   Advanced: include multiple filters (e.g., genes upregulated by EtOH stress in the WT strain that ALSO have defective induction during ethanol stress in the *msn2/4ΔΔ* mutant).
 
 The code below is a template for you to modify to complete this activity. The example code below looks at the downregulated genes in response to stress in the WT (choose something else for your gene list)
@@ -366,12 +413,12 @@ Answer the following questions:
 
 ```{r create-vennDiagram}
 # create a list of the data we want to compare
-GO_results_list <- list(data.frame(GO_msn24_EtOH_up_results)$ID,
+GO_results_list <- list(data.frame(GO_WT_EtOH_up_results)$ID,
                         data.frame(GO_results)$ID)
 
 # visualize the GO results list as a venn diagram
 ggVennDiagram(GO_results_list,
-              category.names = c("msn24 EtOH upregulated", "NAME ME")) +
+              category.names = c("WT EtOH upregulated", "NAME ME")) +
   scale_x_continuous(expand = expand_scale(mult = c(0.5,0))) +
   scale_fill_distiller(palette = "RdBu"
   )
