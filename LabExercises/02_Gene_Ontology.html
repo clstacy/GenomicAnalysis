@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Jeffrey Lewis &amp; Carson Stacy">
-<meta name="dcterms.date" content="2025-01-21">
+<meta name="dcterms.date" content="2025-01-22">
 
 <title>Gene Ontology (GO) Term Analysis</title>
 <style>
@@ -98,7 +98,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">January 21, 2025</p>
+      <p class="date">January 22, 2025</p>
     </div>
   </div>
   
@@ -128,34 +128,73 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>Packages only need to be installed once, but they need to be loaded every time you start a new R session.</p>
 <section id="install-packages" class="level3">
 <h3 class="anchored" data-anchor-id="install-packages">Install Packages</h3>
-<p>The following code installs all of the packages used in this document – if not already installed – and then loads the packages into R. We need to install packages specific to our gene ontology bioinformatic analysis. Many of these packages aren’t available on the R CRAN package repository, instead they are hosted on the BioConductor repository, a repository that is focused on packages used in biological research. Today, we need to install the package clusterProfiler with the code below. The <code>pak()</code> function will check the bioconductor repository if the package isn’t on CRAN</p>
+<p>The following code installs all of the packages used in this document – if not already installed – and then loads the packages into R. We need to install packages specific to our gene ontology bioinformatic analysis. Many of these packages aren’t available on the R CRAN package repository, instead they are hosted on the BioConductor repository, a repository that is focused on packages used in biological research. Today, we need to install the package <code>clusterProfiler</code> with the code below.</p>
+<div class="callout callout-style-default callout-important callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Some Packages Need Compiled
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>If you are using your own Mac,</p>
+<ol type="1">
+<li><p>Open a terminal window</p>
+<ul>
+<li>Click Spotlight search in the top right of your screen, then search for “Terminal”</li>
+</ul></li>
+<li><p>Copy and paste the following into the terminal, then press enter.</p>
+<pre><code>xcode-select --install</code></pre></li>
+<li><p>You will probably need to provide your password to enable installing the software.</p></li>
+<li><p>Follow any onscreen instructions and wait for it to finish.</p></li>
+<li><p>You can now compile R packages!</p></li>
+</ol>
+<p>If you are using <strong>Windows</strong>,</p>
+<ol type="1">
+<li><p><a href="https://cran.r-project.org/bin/windows/Rtools/">Browse to this page</a>.</p></li>
+<li><p>Download the newest 64-bit Rtools installer.</p></li>
+<li><p>Run the file to install, following all onscreen instructions. If you are unsure about anything, leave the default settings.</p></li>
+<li><p>Run <code>Sys.which("make")</code> and see if it finds a make.exe file. If so, you’re good to go. If not, do the path stuff.</p></li>
+<li><p><a href="https://cran.r-project.org/bin/windows/Rtools/">Go back to this page</a>. Follow the remaining instructions.</p></li>
+<li><p>You can now compile R packages!</p></li>
+</ol>
+</div>
+</div>
 <div class="cell">
 <details open="" class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">require</span>(<span class="st">"pak"</span>)) <span class="fu">install.packages</span>(<span class="st">"pak"</span>); <span class="fu">library</span>(pak)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">require</span>(<span class="st">"pak"</span>)) <span class="fu">install.packages</span>(<span class="st">"pak"</span>); <span class="fu">library</span>(pak)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stderr">
 <pre><code>Loading required package: pak</code></pre>
 </div>
 <details open="" class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># this code installs the packages we need for this activity</span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">pak</span>(<span class="fu">c</span>(<span class="st">"tidyverse"</span>, <span class="st">"here"</span>, <span class="st">"knitr"</span>, <span class="st">"dplyr"</span>, <span class="co"># already downloaded last activity</span></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>       <span class="st">"readr"</span>,<span class="st">"pander"</span>, <span class="st">"BiocManager"</span>, <span class="co"># also from last activity</span></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>       <span class="st">"janitor"</span>, <span class="co"># for cleaning column names</span></span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>      <span class="co"># "igraph", </span></span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>      <span class="st">"tidytree"</span>, <span class="co"># dependencies that require explicit download on latest Mac OS</span></span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>       <span class="st">"ggVennDiagram"</span>, <span class="co"># visualization venn diagram</span></span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>       <span class="st">"clusterProfiler"</span>, <span class="co"># for GO enrichment</span></span>
-<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>       <span class="st">"AnnotationDbi"</span>, <span class="co"># database of common genome annotations</span></span>
-<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>       <span class="st">"org.Sc.sgd.db"</span>) <span class="co"># annotation database for S. cerevesiae</span></span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>       )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># this code installs the packages we need for this activity</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="fu">pak</span>(<span class="fu">c</span>(<span class="st">"tidyverse"</span>, <span class="st">"here"</span>, <span class="st">"knitr"</span>, <span class="st">"dplyr"</span>, <span class="co"># already downloaded last activity</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>       <span class="st">"readr"</span>,<span class="st">"pander"</span>, <span class="st">"BiocManager"</span>, <span class="co"># also from last activity</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>       <span class="st">"janitor"</span>, <span class="co"># for cleaning column names</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>       <span class="st">"igraph@2.1.2"</span>, <span class="co"># dependency</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>       <span class="st">"tidytree"</span>, </span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>       <span class="st">"ggVennDiagram"</span> <span class="co"># visualization venn diagram</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>       ))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stderr">
-<pre><code>ℹ Loading metadata database</code></pre>
+<pre><code></code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>✔ Loading metadata database ... done</code></pre>
+<pre><code>✔ Updated metadata database: 4.33 MB in 3 files.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code></code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>ℹ Updating metadata database</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>✔ Updating metadata database ... done</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <pre><code></code></pre>
@@ -167,7 +206,22 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <pre><code>ℹ No downloads are needed</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>✔ 13 pkgs + 160 deps: kept 105 [10.1s]</code></pre>
+<pre><code>✔ 11 pkgs + 112 deps: kept 118 [20s]</code></pre>
+</div>
+<details open="" class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># update Bioconductor, run this if you get an error downloading the below packages</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="co"># BiocManager::install()</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="co"># install Bioconductor packages</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>BiocPkgs <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"fgsea"</span>,<span class="st">"clusterProfiler"</span>, <span class="st">"AnnotationDbi"</span>, <span class="st">"org.Sc.sgd.db"</span>)</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>BiocManager<span class="sc">::</span><span class="fu">install</span>(<span class="fu">setdiff</span>(BiocPkgs, <span class="fu">rownames</span>(<span class="fu">installed.packages</span>())))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>Bioconductor version 3.18 (BiocManager 1.30.25), R 4.3.3 (2024-02-29)</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Old packages: 'DESeq2', 'igraph', 'see', 'systemfonts', 'textshaping'</code></pre>
 </div>
 </div>
 </section>
@@ -176,11 +230,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="cell">
 <details open="" class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load packages</span></span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(clusterProfiler)</span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(org.Sc.sgd.db)</span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggVennDiagram)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load packages</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(clusterProfiler)</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(org.Sc.sgd.db)</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggVennDiagram)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 </section>
@@ -191,11 +245,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="cell">
 <details open="" class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># assign url to a variable</span></span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>DE_data_url <span class="ot">&lt;-</span> <span class="st">"https://raw.githubusercontent.com/clstacy/GenomicAnalysis/main/Data/Msn24_EtOH/DE_genes_Msn24_EtOH.txt"</span></span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="co"># download the data from the web</span></span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>msn24_EtOH <span class="ot">=</span> readr<span class="sc">::</span><span class="fu">read_tsv</span>(DE_data_url)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># assign url to a variable</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>DE_data_url <span class="ot">&lt;-</span> <span class="st">"https://raw.githubusercontent.com/clstacy/GenomicAnalysis/main/Data/Msn24_EtOH/DE_genes_Msn24_EtOH.txt"</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="co"># download the data from the web</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>msn24_EtOH <span class="ot">=</span> readr<span class="sc">::</span><span class="fu">read_tsv</span>(DE_data_url)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stderr">
 <pre><code>Rows: 5756 Columns: 18
@@ -211,30 +265,30 @@ dbl (15): logFC_YPS606_WT_etoh_response, pvalue_YPS606_WT_etoh_response, fdr...
 </section>
 <section id="create-a-differentially-expressed-de-gene-list" class="level2">
 <h2 class="anchored" data-anchor-id="create-a-differentially-expressed-de-gene-list">Create a Differentially Expressed (DE) Gene List</h2>
-<p>We need a list of differentially expressed genes to test for over (or under) enrichment of functional GO terms. Here, we choose genes with significantly (FDR&lt;0.05) higher expression (log2 fold change (logFC) greater than 1) in the <em>msn2/4ΔΔ</em> mutant’s EtOH response compared to the EtOH response of the wild-type strain (positive values in the logFC column of WT vs <em>msn2/4ΔΔ</em>: EtOH response).</p>
+<p>We need a list of differentially expressed genes to test for over (or under) enrichment of functional GO terms. Here, we choose genes with significantly (FDR&lt;0.05) higher expression (log2 fold change (logFC) greater than 1) in the EtOH treated wild-type cells unstressed wild-type control cells (positive values in the logFC column of WT EtOH response).</p>
 <div class="cell">
 <details open="" class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># subset data to just genes with significant fdr &amp; log2FC&gt;1</span></span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>msn24_EtOH <span class="sc">|&gt;</span></span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(logFC_WT.vs.msn24dd_EtOH_response <span class="sc">&gt;</span> <span class="dv">1</span> <span class="sc">&amp;</span> </span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>           fdr_WT.vs.msn24dd_EtOH_response <span class="sc">&lt;</span> <span class="fl">0.05</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># subset data to just genes with significant fdr &amp; log2FC&gt;1</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>msn24_EtOH <span class="sc">|&gt;</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(logFC_YPS606_WT_etoh_response <span class="sc">&gt;</span> <span class="dv">1</span> <span class="sc">&amp;</span> </span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>         fdr_YPS606_WT_EtOH_response <span class="sc">&lt;</span> <span class="fl">0.05</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code># A tibble: 94 × 18
-   gene_id  common_name annotation logFC_YPS606_WT_etoh…¹ pvalue_YPS606_WT_eto…²
-   &lt;chr&gt;    &lt;chr&gt;       &lt;chr&gt;                       &lt;dbl&gt;                  &lt;dbl&gt;
- 1 YOR315W  SFG1        Putative …                  -5.52               4.33e-31
- 2 YFL051C  YFL051C     &lt;NA&gt;                        -4.54               6.37e-27
- 3 YMR016C  SOK2        Nuclear p…                  -3.09               1.32e-32
- 4 YPL061W  ALD6        Cytosolic…                  -7.04               4.96e-26
- 5 YER073W  ALD5        Mitochond…                  -1.88               6.14e-17
- 6 YBL005W… YBL005W-B   Retrotran…                   1.91               5.46e-13
- 7 YBL039C  URA7        Major CTP…                  -6.95               3.62e-41
- 8 YJL050W  MTR4        RNA duple…                  -4.59               4.73e-36
- 9 YMR241W  YHM2        Citrate a…                  -1.72               1.72e-20
-10 YIL131C  FKH1        Forkhead …                  -2.20               1.23e-27
-# ℹ 84 more rows
+<pre><code># A tibble: 1,168 × 18
+   gene_id common_name annotation  logFC_YPS606_WT_etoh…¹ pvalue_YPS606_WT_eto…²
+   &lt;chr&gt;   &lt;chr&gt;       &lt;chr&gt;                        &lt;dbl&gt;                  &lt;dbl&gt;
+ 1 YMR105C PGM2        Phosphoglu…                   7.60               9.40e-38
+ 2 YML100W TSL1        Large subu…                   7.76               1.04e-35
+ 3 YER053C PIC2        Mitochondr…                   6.69               3.03e-39
+ 4 YKL035W UGP1        UDP-glucos…                   4.42               7.55e-34
+ 5 YLR258W GSY2        Glycogen s…                   7.52               2.20e-40
+ 6 YMR196W YMR196W     Putative p…                   7.33               9.30e-37
+ 7 YFR053C HXK1        Hexokinase…                   9.08               6.36e-38
+ 8 YDR001C NTH1        Neutral tr…                   3.64               1.69e-34
+ 9 YBR126C TPS1        Synthase s…                   5.33               4.03e-36
+10 YDR516C EMI2        Hexokinase…                   7.00               3.65e-38
+# ℹ 1,158 more rows
 # ℹ abbreviated names: ¹​logFC_YPS606_WT_etoh_response,
 #   ²​pvalue_YPS606_WT_etoh_response
 # ℹ 13 more variables: fdr_YPS606_WT_EtOH_response &lt;dbl&gt;,
@@ -246,74 +300,118 @@ dbl (15): logFC_YPS606_WT_etoh_response, pvalue_YPS606_WT_etoh_response, fdr...
 <div class="cell">
 <details open="" class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co">#  Save results to a new variable:</span></span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>DE_genes_upregulated_msn24_EtOH <span class="ot">&lt;-</span> msn24_EtOH <span class="sc">|&gt;</span></span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(logFC_WT.vs.msn24dd_EtOH_response <span class="sc">&gt;</span> <span class="dv">1</span> <span class="sc">&amp;</span> </span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>         fdr_WT.vs.msn24dd_EtOH_response <span class="sc">&lt;</span> <span class="fl">0.05</span>) <span class="sc">|&gt;</span></span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(gene_id) <span class="co"># extract gene names</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co">#  Save results to a new variable:</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>DE_genes_upregulated_WT_EtOH <span class="ot">&lt;-</span> msn24_EtOH <span class="sc">|&gt;</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(logFC_YPS606_WT_etoh_response <span class="sc">&gt;</span> <span class="dv">1</span> <span class="sc">&amp;</span> </span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>         fdr_YPS606_WT_EtOH_response <span class="sc">&lt;</span> <span class="fl">0.05</span>) <span class="sc">|&gt;</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(gene_id) <span class="co"># extract gene names</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 </section>
 <section id="go-term-enrichment-analysis" class="level2">
 <h2 class="anchored" data-anchor-id="go-term-enrichment-analysis">GO Term Enrichment Analysis</h2>
-<p>Now we have a list of genes (saved as DE_genes_upregulated_msn24_EtOH) that we want to perform GO term enrichment on. Let’s do that now, using the clusterProfiler package’s <code>enrichGO</code> function. This function takes a list of genes, an organism database, and the type of GO term (e.g., Biological Process, Cellular Component, Molecular Function) as arguments. We will use the <code>org.Sc.sgd.db</code> database, which is the annotation database for <em>Saccharomyces cerevisiae</em>.</p>
+<p>Now we have a list of genes (saved as DE_genes_upregulated_WT_EtOH) that we want to perform GO term enrichment on. We can do this using the clusterProfiler package’s <code>enrichGO</code> function. This function takes a list of genes, an organism database, and the type of GO term (e.g., Biological Process, Cellular Component, Molecular Function) as arguments. We will use the <code>org.Sc.sgd.db</code> database, which is the annotation database for <em>Saccharomyces cerevisiae</em>.</p>
+<section id="upregulated---go-enrichments-for-genes-with-increased-expression-in-ethanol-stress" class="level3">
+<h3 class="anchored" data-anchor-id="upregulated---go-enrichments-for-genes-with-increased-expression-in-ethanol-stress">Upregulated - GO Enrichments for Genes with Increased Expression in Ethanol Stress</h3>
 <div class="cell">
 <details open="" class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>GO_msn24_EtOH_up_results <span class="ot">&lt;-</span> <span class="fu">enrichGO</span>(</span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">gene =</span> DE_genes_upregulated_msn24_EtOH,</span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">OrgDb =</span> <span class="st">"org.Sc.sgd.db"</span>,</span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">universe =</span> msn24_EtOH<span class="sc">$</span>gene_id,</span>
-<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">keyType =</span> <span class="st">"ORF"</span>,</span>
-<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">ont=</span> <span class="st">"BP"</span></span>
-<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
-<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>  <span class="co"># let's add a 'richFactor' column that gives us the proportion of genes DE in the term</span></span>
-<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">richFactor =</span> Count <span class="sc">/</span> <span class="fu">as.numeric</span>(<span class="fu">sub</span>(<span class="st">"/</span><span class="sc">\\</span><span class="st">d+"</span>, <span class="st">""</span>, BgRatio)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>GO_WT_EtOH_up_results <span class="ot">&lt;-</span> <span class="fu">enrichGO</span>(</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">gene =</span> DE_genes_upregulated_WT_EtOH,</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">OrgDb =</span> <span class="st">"org.Sc.sgd.db"</span>,</span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">universe =</span> msn24_EtOH<span class="sc">$</span>gene_id,</span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">keyType =</span> <span class="st">"ORF"</span>,</span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">ont=</span> <span class="st">"BP"</span></span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>  <span class="co"># let's add a 'richFactor' column that gives us the proportion of genes DE in the term</span></span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">richFactor =</span> Count <span class="sc">/</span> <span class="fu">as.numeric</span>(<span class="fu">sub</span>(<span class="st">"/</span><span class="sc">\\</span><span class="st">d+"</span>, <span class="st">""</span>, BgRatio)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 <p>Now, we can look at the results in table form.</p>
 <div class="cell">
 <details open="" class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># open up the results in a data frame to examine</span></span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>GO_msn24_EtOH_up_results <span class="sc">|&gt;</span></span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">|&gt;</span></span>
-<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">View</span>()</span>
-<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Here is how we could write this result into a text file:</span></span>
-<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>GO_msn24_EtOH_up_results <span class="sc">|&gt;</span></span>
-<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">|&gt;</span></span>
-<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">write_tsv</span>(<span class="at">file =</span> <span class="st">"~/Desktop/GO_msn24_EtOH_up_results.tsv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co"># open up the results in a data frame to examine</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>GO_WT_EtOH_up_results <span class="sc">|&gt;</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">|&gt;</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">View</span>()</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Here is how we could write this result into a text file:</span></span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>GO_WT_EtOH_up_results <span class="sc">|&gt;</span></span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">|&gt;</span></span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">write_tsv</span>(<span class="at">file =</span> <span class="st">"~/Desktop/GO_WT_EtOH_up_results.tsv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
-<p>Now we can visualize the enrichment results, which shows us gene ontology categories that are enriched in genes with higher expression (upregulated) in the WT vs <em>msn2/4ΔΔ</em>: EtOH response.</p>
+</section>
+<section id="downregulated---go-enrichments-for-genes-with-decreased-expression-in-ethanol-stress" class="level3">
+<h3 class="anchored" data-anchor-id="downregulated---go-enrichments-for-genes-with-decreased-expression-in-ethanol-stress">Downregulated - GO Enrichments for Genes with Decreased Expression in Ethanol Stress</h3>
+<div class="cell">
 <details open="" class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># a simple visualization</span></span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">barplot</span>(GO_msn24_EtOH_up_results, <span class="at">showCategory =</span> <span class="dv">10</span>))</span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="co"># a more complicated visualization, with more information density</span></span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(GO_msn24_EtOH_up_results,</span>
-<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>       <span class="at">showCategory =</span> <span class="dv">15</span>,</span>
-<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>       <span class="fu">aes</span>(richFactor, <span class="fu">fct_reorder</span>(Description, richFactor))) <span class="sc">+</span></span>
-<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_segment</span>(<span class="fu">aes</span>(<span class="at">xend =</span> <span class="dv">0</span>, <span class="at">yend =</span> Description)) <span class="sc">+</span></span>
-<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">color =</span> p.adjust, <span class="at">size =</span> Count)) <span class="sc">+</span></span>
-<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_gradientn</span>(</span>
-<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">colours =</span> <span class="fu">c</span>(<span class="st">"#f7ca64"</span>, <span class="st">"#46bac2"</span>, <span class="st">"#7e62a3"</span>),</span>
-<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">trans =</span> <span class="st">"log10"</span>,</span>
-<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">guide =</span> <span class="fu">guide_colorbar</span>(<span class="at">reverse =</span> <span class="cn">TRUE</span>, <span class="at">order =</span> <span class="dv">1</span>)</span>
-<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_size_continuous</span>(<span class="at">range =</span> <span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">10</span>)) <span class="sc">+</span></span>
-<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">"Rich Factor"</span>) <span class="sc">+</span></span>
-<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ylab</span>(<span class="cn">NULL</span>) <span class="sc">+</span></span>
-<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Biological Processes"</span>) <span class="sc">+</span></span>
-<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co"># create a list of genes to test for enrichment</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>DE_genes_downregulated_WT_EtOH <span class="ot">&lt;-</span> msn24_EtOH <span class="sc">|&gt;</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(logFC_YPS606_WT_etoh_response <span class="sc">&lt;</span> <span class="sc">-</span><span class="dv">1</span> <span class="sc">&amp;</span> </span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>         fdr_YPS606_WT_EtOH_response <span class="sc">&lt;</span> <span class="fl">0.05</span>) <span class="sc">|&gt;</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(gene_id) <span class="co"># extract gene names</span></span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Run GO enrichment analysis</span></span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>GO_WT_EtOH_down_results <span class="ot">&lt;-</span> <span class="fu">enrichGO</span>(</span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">gene =</span> DE_genes_downregulated_WT_EtOH,</span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">OrgDb =</span> <span class="st">"org.Sc.sgd.db"</span>,</span>
+<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">universe =</span> msn24_EtOH<span class="sc">$</span>gene_id,</span>
+<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">keyType =</span> <span class="st">"ORF"</span>,</span>
+<span id="cb25-13"><a href="#cb25-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">ont=</span> <span class="st">"BP"</span></span>
+<span id="cb25-14"><a href="#cb25-14" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
+<span id="cb25-15"><a href="#cb25-15" aria-hidden="true" tabindex="-1"></a>  <span class="co"># let's add a 'richFactor' column that gives us the proportion of genes DE in the term</span></span>
+<span id="cb25-16"><a href="#cb25-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">richFactor =</span> Count <span class="sc">/</span> <span class="fu">as.numeric</span>(<span class="fu">sub</span>(<span class="st">"/</span><span class="sc">\\</span><span class="st">d+"</span>, <span class="st">""</span>, BgRatio)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<p>Now, we can look at the results in table form.</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># open up the results in a data frame to examine</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>GO_WT_EtOH_down_results <span class="sc">|&gt;</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">|&gt;</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">View</span>()</span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Here is how we could write this result into a text file:</span></span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>GO_WT_EtOH_down_results <span class="sc">|&gt;</span></span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">|&gt;</span></span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">write_tsv</span>(<span class="at">file =</span> <span class="st">"~/Desktop/GO_WT_EtOH_down_results.tsv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+<section id="visualize-go-results" class="level3">
+<h3 class="anchored" data-anchor-id="visualize-go-results">Visualize GO Results</h3>
+<p>Now we can visualize the enrichment results, to show gene ontology category enrichments. This example will show genes with higher expression (upregulated) in the WT EtOH response.</p>
+<details open="" class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co"># a simple visualization</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">barplot</span>(GO_WT_EtOH_up_results, <span class="at">showCategory =</span> <span class="dv">10</span>))</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a><span class="co"># a more complicated visualization, with more information density</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(GO_WT_EtOH_up_results,</span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>       <span class="at">showCategory =</span> <span class="dv">15</span>,</span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>       <span class="fu">aes</span>(richFactor, <span class="fu">fct_reorder</span>(Description, richFactor))) <span class="sc">+</span></span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_segment</span>(<span class="fu">aes</span>(<span class="at">xend =</span> <span class="dv">0</span>, <span class="at">yend =</span> Description)) <span class="sc">+</span></span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">color =</span> p.adjust, <span class="at">size =</span> Count)) <span class="sc">+</span></span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_gradientn</span>(</span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">colours =</span> <span class="fu">c</span>(<span class="st">"#f7ca64"</span>, <span class="st">"#46bac2"</span>, <span class="st">"#7e62a3"</span>),</span>
+<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">trans =</span> <span class="st">"log10"</span>,</span>
+<span id="cb27-12"><a href="#cb27-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">guide =</span> <span class="fu">guide_colorbar</span>(<span class="at">reverse =</span> <span class="cn">TRUE</span>, <span class="at">order =</span> <span class="dv">1</span>)</span>
+<span id="cb27-13"><a href="#cb27-13" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb27-14"><a href="#cb27-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_size_continuous</span>(<span class="at">range =</span> <span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">10</span>)) <span class="sc">+</span></span>
+<span id="cb27-15"><a href="#cb27-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">"Rich Factor"</span>) <span class="sc">+</span></span>
+<span id="cb27-16"><a href="#cb27-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ylab</span>(<span class="cn">NULL</span>) <span class="sc">+</span></span>
+<span id="cb27-17"><a href="#cb27-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Biological Processes"</span>) <span class="sc">+</span></span>
+<span id="cb27-18"><a href="#cb27-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell quarto-layout-panel" data-layout-nrow="2">
 <div class="quarto-layout-row">
 <div class="quarto-layout-cell" style="flex-basis: 100.0%;justify-content: flex-start;">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="02_Gene_Ontology_files/figure-html/unnamed-chunk-8-1.png" class="img-fluid figure-img" width="576"></p>
+<p><img src="02_Gene_Ontology_files/figure-html/unnamed-chunk-10-1.png" class="img-fluid figure-img" width="576"></p>
 <figcaption>Default GO Enrichment plot</figcaption>
 </figure>
 </div>
@@ -323,8 +421,8 @@ dbl (15): logFC_YPS606_WT_etoh_response, pvalue_YPS606_WT_etoh_response, fdr...
 <div class="quarto-layout-cell" style="flex-basis: 100.0%;justify-content: flex-start;">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="02_Gene_Ontology_files/figure-html/unnamed-chunk-8-2.png" class="img-fluid figure-img" width="576"></p>
-<figcaption>GO Enrichment of upregulated genes in <em>msn2/4ΔΔ</em> EtOH response</figcaption>
+<p><img src="02_Gene_Ontology_files/figure-html/unnamed-chunk-10-2.png" class="img-fluid figure-img" width="576"></p>
+<figcaption>GO Enrichment of upregulated genes in EtOH response</figcaption>
 </figure>
 </div>
 </div>
@@ -332,83 +430,84 @@ dbl (15): logFC_YPS606_WT_etoh_response, pvalue_YPS606_WT_etoh_response, fdr...
 </div>
 <p>You can try adjusting the size of the output figures by clicking the gear icon in the top right of the code chunk and click “use custom figure size”. Note this updates the chunk header so the change is saved.</p>
 </section>
+</section>
 <section id="saving-ggplot-output-to-a-file" class="level2">
 <h2 class="anchored" data-anchor-id="saving-ggplot-output-to-a-file">Saving ggplot output to a file</h2>
 <p>We usually want to save our visualizations for later. When plotting with the ggplot package, there is an easy way to do this. See below:</p>
 <div class="cell">
 <details open="" class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create a folder to save our visualizations</span></span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>dir_visualization <span class="ot">&lt;-</span></span>
-<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">path.expand</span>(<span class="st">"~/Desktop/Genomic_Data_Analysis/Visualization/"</span>)</span>
-<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">dir.exists</span>(dir_visualization)) {</span>
-<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">dir.create</span>(dir_visualization, <span class="at">recursive =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a><span class="co"># type ?ggsave in the console for more information via the help page.</span></span>
-<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="at">filename =</span> <span class="st">"GO_BP_msn24_EtOH_up_results_lollipopPlot.pdf"</span>, </span>
-<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">plot =</span> <span class="fu">last_plot</span>(), </span>
-<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">device =</span> <span class="st">"pdf"</span>, <span class="co"># "png", "eps", "ps", "tex" (pictex), "pdf", "jpeg", "tiff", "png", "bmp", "svg" or "wmf" (windows only).</span></span>
-<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>  <span class="co"># note that pdf, eps, svg are vector/line art, so zooming doesn't pixelate.</span></span>
-<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">path =</span> dir_visualization, <span class="co"># Path of the directory to save plot (optional)</span></span>
-<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">scale =</span> <span class="dv">2</span>, <span class="co"># multiplicative scaling factor </span></span>
-<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a>  <span class="at">width =</span> <span class="dv">12</span>,</span>
-<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a>  <span class="at">height =</span> <span class="dv">8</span>,</span>
-<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a>  <span class="at">units =</span> <span class="st">"cm"</span>, <span class="co"># must be one of: "in", "cm", "mm", "px"</span></span>
-<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a>  <span class="at">dpi =</span> <span class="dv">300</span>  <span class="co"># Create publication quality figures</span></span>
-<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create a folder to save our visualizations</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>dir_visualization <span class="ot">&lt;-</span></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">path.expand</span>(<span class="st">"~/Desktop/Genomic_Data_Analysis/Visualization/"</span>)</span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">dir.exists</span>(dir_visualization)) {</span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">dir.create</span>(dir_visualization, <span class="at">recursive =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a><span class="co"># type ?ggsave in the console for more information via the help page.</span></span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="at">filename =</span> <span class="st">"GO_BP_WT_EtOH_up_results_lollipopPlot.pdf"</span>, </span>
+<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">plot =</span> <span class="fu">last_plot</span>(), </span>
+<span id="cb28-11"><a href="#cb28-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">device =</span> <span class="st">"pdf"</span>, <span class="co"># "png", "eps", "ps", "tex" (pictex), "pdf", "jpeg", "tiff", "png", "bmp", "svg" or "wmf" (windows only).</span></span>
+<span id="cb28-12"><a href="#cb28-12" aria-hidden="true" tabindex="-1"></a>  <span class="co"># note that pdf, eps, svg are vector/line art, so zooming doesn't pixelate.</span></span>
+<span id="cb28-13"><a href="#cb28-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">path =</span> dir_visualization, <span class="co"># Path of the directory to save plot (optional)</span></span>
+<span id="cb28-14"><a href="#cb28-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">scale =</span> <span class="dv">2</span>, <span class="co"># multiplicative scaling factor </span></span>
+<span id="cb28-15"><a href="#cb28-15" aria-hidden="true" tabindex="-1"></a>  <span class="at">width =</span> <span class="dv">12</span>,</span>
+<span id="cb28-16"><a href="#cb28-16" aria-hidden="true" tabindex="-1"></a>  <span class="at">height =</span> <span class="dv">8</span>,</span>
+<span id="cb28-17"><a href="#cb28-17" aria-hidden="true" tabindex="-1"></a>  <span class="at">units =</span> <span class="st">"cm"</span>, <span class="co"># must be one of: "in", "cm", "mm", "px"</span></span>
+<span id="cb28-18"><a href="#cb28-18" aria-hidden="true" tabindex="-1"></a>  <span class="at">dpi =</span> <span class="dv">300</span>  <span class="co"># Create publication quality figures</span></span>
+<span id="cb28-19"><a href="#cb28-19" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 <p>Recall that when we Render this Quarto notebook, we keep a copy of the plots/images there as well, in the same place as the code and analysis used to generate it. However, we may want a higher resolution file of just the image, or the image in a different format. In this case, saving the plot is a useful option for us. The journal Science has the following <a href="https://www.science.org/do/10.5555/page.2385607/full/author_figure_prep_guide_2022-1689707679870.pdf">recommendations</a>: “We prefer prefer ai, eps, pdf, layered psd, tif, and jpeg files. …minimum file resolution of 300 dpi.”</p>
 </section>
 <section id="the-hypergeometric-distribution-in-practice" class="level1">
 <h1>The Hypergeometric Distribution in practice</h1>
-<p>Notice that the DNA integration process does not have very many genes in the category, but they appear to be highly present in the the upregulated gene list. Specifically, DE genes have this GO term, where in the entire genome, there are only genes. What are the odds that we see this by random chance? let’s do the math:</p>
+<p>Where do these p-values come from? The hypergeometric distribution is a probability distribution from statistics that is relevant here. In this case, we are looking at the probability of drawing a certain number of genes with a specific GO term in a list of DE genes, given the total number of genes in the genome. Notice that the proteolysis term is identified as enriched among upregulated genes. Specifically, 137 DE genes have this GO term, where in the entire genome, there are only 5536 annotated genes. Of those, only 403 are annotated with the term “proteolysis”. What are the odds that we see this by random chance? let’s do the math:</p>
 <div class="cell">
 <details open="" class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># number of genes that have GO:0006551 (Leucine Metabolic Process)</span></span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>leucine_genes <span class="ot">=</span> <span class="dv">10</span></span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="co"># number of genes that are DE (msn2/4 EtOH response, logFC&gt;1)</span></span>
-<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>DE_genes <span class="ot">=</span> <span class="dv">91</span></span>
-<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a><span class="co"># number of genes that are both DE and Leucine Metabolism genes</span></span>
-<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>Overlap <span class="ot">=</span> <span class="dv">3</span></span>
-<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a><span class="co"># total number of genes in experiment</span></span>
-<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>total <span class="ot">=</span> <span class="dv">5536</span> <span class="co"># number of genes in genome</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="co"># number of genes that have GO:0006508 (Proteolysis)</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>proteolysis_genes <span class="ot">=</span> <span class="dv">403</span></span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a><span class="co"># number of genes that are DE (WT EtOH response, logFC&gt;1)</span></span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>DE_genes <span class="ot">=</span> <span class="dv">1113</span></span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a><span class="co"># number of genes that are both DE and Proteolysis genes</span></span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a>Overlap <span class="ot">=</span> <span class="dv">137</span></span>
+<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a><span class="co"># total number of genes in experiment</span></span>
+<span id="cb29-11"><a href="#cb29-11" aria-hidden="true" tabindex="-1"></a>total <span class="ot">=</span> <span class="dv">5536</span> <span class="co"># number of genes in genome</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 <p><em>Without doing the math, do you expect these to be underrepresented, over-represented, or neither?</em></p>
 <div class="cell">
 <details open="" class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co"># test for overrepresentation (enrichment)</span></span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="fu">phyper</span>(<span class="at">q =</span> Overlap<span class="dv">-1</span>, <span class="co"># number of integration genes that were DE</span></span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>                      <span class="co"># we subtract 1 b/c of lower.tail=FALSE means greater than</span></span>
-<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>                      <span class="co"># without equality, so have to do one less</span></span>
-<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>       <span class="at">m =</span> DE_genes, <span class="co"># number of DE genes</span></span>
-<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>       <span class="at">n =</span> total<span class="sc">-</span>DE_genes, <span class="co"># number of non DE genes</span></span>
-<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>       <span class="at">k =</span> leucine_genes, <span class="co"># number of observed DE integration genes</span></span>
-<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>       <span class="at">lower.tail =</span> <span class="cn">FALSE</span>) <span class="co"># the probability that X &gt; x</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="co"># test for overrepresentation (enrichment)</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a><span class="fu">phyper</span>(<span class="at">q =</span> Overlap<span class="dv">-1</span>, <span class="co"># number of integration genes that were DE</span></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>                      <span class="co"># we subtract 1 b/c of lower.tail=FALSE means greater than</span></span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>                      <span class="co"># without equality, so have to do one less</span></span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>       <span class="at">m =</span> DE_genes, <span class="co"># number of DE genes</span></span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>       <span class="at">n =</span> total<span class="sc">-</span>DE_genes, <span class="co"># number of non DE genes</span></span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a>       <span class="at">k =</span> proteolysis_genes, <span class="co"># number of observed DE integration genes</span></span>
+<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a>       <span class="at">lower.tail =</span> <span class="cn">FALSE</span>) <span class="co"># the probability that X &gt; x</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 0.000474345</code></pre>
+<pre><code>[1] 7.596504e-12</code></pre>
 </div>
 </div>
 <div class="cell">
 <details open="" class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co"># test for underrepresentation (depletion)</span></span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="fu">phyper</span>(<span class="at">q =</span> Overlap, <span class="co"># number of integration genes that were DE</span></span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>       <span class="at">m =</span> DE_genes, <span class="co"># number of DE genes</span></span>
-<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>       <span class="at">n =</span> total<span class="sc">-</span>DE_genes, <span class="co"># number of non DE genes</span></span>
-<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>       <span class="at">k =</span> leucine_genes, <span class="co"># number of observed DE DNA integration genes</span></span>
-<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>       <span class="at">lower.tail =</span> <span class="cn">TRUE</span>) <span class="co"># the probability that X &lt;= x</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="co"># test for underrepresentation (depletion)</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a><span class="fu">phyper</span>(<span class="at">q =</span> Overlap, <span class="co"># number of integration genes that were DE</span></span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>       <span class="at">m =</span> DE_genes, <span class="co"># number of DE genes</span></span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>       <span class="at">n =</span> total<span class="sc">-</span>DE_genes, <span class="co"># number of non DE genes</span></span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>       <span class="at">k =</span> proteolysis_genes, <span class="co"># number of observed DE DNA integration genes</span></span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a>       <span class="at">lower.tail =</span> <span class="cn">TRUE</span>) <span class="co"># the probability that X &lt;= x</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 0.9999867</code></pre>
+<pre><code>[1] 1</code></pre>
 </div>
 </div>
 <p>As we see, there is strong evidence that the number of genes with this GO term is unlikely to be seen due to chance. In layman’s terms, this GO term is enriched in upregulated genes in this contrast. The test for underrepresenation shows there is no support for a hypothesis that this gene is underrepresented in the DE gene list.</p>
@@ -418,34 +517,33 @@ dbl (15): logFC_YPS606_WT_etoh_response, pvalue_YPS606_WT_etoh_response, fdr...
 <div class="cell">
 <details open="" class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co">#fisher test for overrepresentation</span></span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="fu">fisher.test</span>(<span class="fu">matrix</span>(<span class="fu">c</span>(Overlap, DE_genes<span class="sc">-</span>Overlap, leucine_genes<span class="sc">-</span>Overlap, total<span class="sc">-</span>DE_genes<span class="sc">-</span>leucine_genes <span class="sc">+</span> Overlap), <span class="dv">2</span>, <span class="dv">2</span>), <span class="at">alternative=</span><span class="st">'greater'</span>)<span class="sc">$</span>p.value</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="co">#fisher test for overrepresentation</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a><span class="fu">fisher.test</span>(<span class="fu">matrix</span>(<span class="fu">c</span>(Overlap, DE_genes<span class="sc">-</span>Overlap, proteolysis_genes<span class="sc">-</span>Overlap, total<span class="sc">-</span>DE_genes<span class="sc">-</span>proteolysis_genes <span class="sc">+</span> Overlap), <span class="dv">2</span>, <span class="dv">2</span>), <span class="at">alternative=</span><span class="st">'greater'</span>)<span class="sc">$</span>p.value</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 0.000474345</code></pre>
+<pre><code>[1] 7.596504e-12</code></pre>
 </div>
 <details open="" class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co">#fisher test for underrepresentation</span></span>
-<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="fu">fisher.test</span>(<span class="fu">matrix</span>(<span class="fu">c</span>(Overlap, DE_genes<span class="sc">-</span>Overlap, leucine_genes<span class="sc">-</span>Overlap, total<span class="sc">-</span>DE_genes<span class="sc">-</span>leucine_genes <span class="sc">+</span> Overlap), <span class="dv">2</span>, <span class="dv">2</span>), <span class="at">alternative=</span><span class="st">'less'</span>)<span class="sc">$</span>p.value</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="co">#fisher test for underrepresentation</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a><span class="fu">fisher.test</span>(<span class="fu">matrix</span>(<span class="fu">c</span>(Overlap, DE_genes<span class="sc">-</span>Overlap, proteolysis_genes<span class="sc">-</span>Overlap, total<span class="sc">-</span>DE_genes<span class="sc">-</span>proteolysis_genes <span class="sc">+</span> Overlap), <span class="dv">2</span>, <span class="dv">2</span>), <span class="at">alternative=</span><span class="st">'less'</span>)<span class="sc">$</span>p.value</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 0.9999867</code></pre>
+<pre><code>[1] 1</code></pre>
 </div>
 </div>
 <p>How does the p-value that we get from this test compare to the results table? They should match.</p>
 <p><br><br><br><br></p>
 </section>
 </section>
-<section id="now-it-is-your-turn" class="level1">
-<h1>Now it is your turn</h1>
+<section id="practice-working-with-data" class="level1">
+<h1>Practice working with data</h1>
 <p>Try running your own GO enrichment with a different gene list. Some options could be:</p>
 <ul>
-<li>Start with the WT vs <em>msn2/4ΔΔ</em>: EtOH response again, and this time change to “downregulated” (i.e., genes with higher expression in the wild-type strain compared to the <em>msn2/4ΔΔ</em> mutant). These would potentially include genes with defective induction.</li>
-<li>See what happens when you change the FDR threshold from a less stringet one (0.05) to a more conservative one (0.01).</li>
+<li>See what happens when you change the FDR threshold from a less stringent one (0.05) to a more conservative one (0.01).</li>
 <li>Try different logFC cutoffs.</li>
-<li>Look at different comparisons in the data file (there are 5 total)</li>
-<li>Look at a different GO category (we only looked at BP, not MF or CC)</li>
+<li>Look at different comparisons in the data file (there are 5 total). E.g., compare the EtOH response between WT and <em>msn2/4ΔΔ</em> , and this time change to “downregulated” (i.e., genes with higher expression in the wild-type strain compared to the <em>msn2/4ΔΔ</em> mutant). These would potentially include genes with defective induction.</li>
+<li>Try to look at a different GO category (we only looked at BP, not MF or CC)</li>
 <li>Advanced: include multiple filters (e.g., genes upregulated by EtOH stress in the WT strain that ALSO have defective induction during ethanol stress in the <em>msn2/4ΔΔ</em> mutant).</li>
 </ul>
 <p>The code below is a template for you to modify to complete this activity. The example code below looks at the downregulated genes in response to stress in the WT (choose something else for your gene list)</p>
@@ -453,12 +551,12 @@ dbl (15): logFC_YPS606_WT_etoh_response, pvalue_YPS606_WT_etoh_response, fdr...
 <div class="cell">
 <details open="" class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="co"># subset to just genes meeting your requirements</span></span>
-<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>DE_genes_NAME_ME <span class="ot">&lt;-</span> msn24_EtOH <span class="sc">|&gt;</span></span>
-<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>  <span class="co"># change the below line for the filters that you want</span></span>
-<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(logFC_YPS606_WT_etoh_response <span class="sc">&lt;</span> <span class="dv">1</span> <span class="sc">&amp;</span></span>
-<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>          pvalue_YPS606_WT_etoh_response <span class="sc">&lt;</span> <span class="fl">0.05</span>) <span class="sc">|&gt;</span></span>
-<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(gene_id) <span class="co"># extract the gene names</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="co"># subset to just genes meeting your requirements</span></span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>DE_genes_NAME_ME <span class="ot">&lt;-</span> msn24_EtOH <span class="sc">|&gt;</span></span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>  <span class="co"># change the below line for the filters that you want</span></span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(logFC_YPS606_WT_etoh_response <span class="sc">&lt;</span> <span class="dv">1</span> <span class="sc">&amp;</span></span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a>          pvalue_YPS606_WT_etoh_response <span class="sc">&lt;</span> <span class="fl">0.05</span>) <span class="sc">|&gt;</span></span>
+<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(gene_id) <span class="co"># extract the gene names</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 <section id="run-enrichment" class="level3">
@@ -466,14 +564,14 @@ dbl (15): logFC_YPS606_WT_etoh_response, pvalue_YPS606_WT_etoh_response, fdr...
 <div class="cell">
 <details open="" class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>GO_results <span class="ot">&lt;-</span> <span class="fu">enrichGO</span>(</span>
-<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">gene =</span> DE_genes_NAME_ME,</span>
-<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">OrgDb =</span> <span class="st">"org.Sc.sgd.db"</span>,</span>
-<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">universe =</span> msn24_EtOH<span class="sc">$</span>gene_id,</span>
-<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">keyType =</span> <span class="st">"ORF"</span>,</span>
-<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">ont=</span> <span class="st">"BP"</span></span>
-<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
-<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">richFactor =</span> Count <span class="sc">/</span> <span class="fu">as.numeric</span>(<span class="fu">sub</span>(<span class="st">"/</span><span class="sc">\\</span><span class="st">d+"</span>, <span class="st">""</span>, BgRatio)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>GO_results <span class="ot">&lt;-</span> <span class="fu">enrichGO</span>(</span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">gene =</span> DE_genes_NAME_ME,</span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">OrgDb =</span> <span class="st">"org.Sc.sgd.db"</span>,</span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">universe =</span> msn24_EtOH<span class="sc">$</span>gene_id,</span>
+<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">keyType =</span> <span class="st">"ORF"</span>,</span>
+<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">ont=</span> <span class="st">"BP"</span></span>
+<span id="cb39-7"><a href="#cb39-7" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
+<span id="cb39-8"><a href="#cb39-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">richFactor =</span> Count <span class="sc">/</span> <span class="fu">as.numeric</span>(<span class="fu">sub</span>(<span class="st">"/</span><span class="sc">\\</span><span class="st">d+"</span>, <span class="st">""</span>, BgRatio)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 </section>
@@ -482,15 +580,15 @@ dbl (15): logFC_YPS606_WT_etoh_response, pvalue_YPS606_WT_etoh_response, fdr...
 <div class="cell">
 <details open="" class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="co"># open up the results in a data frame to examine</span></span>
-<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>GO_results <span class="sc">|&gt;</span></span>
-<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">|&gt;</span></span>
-<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">View</span>()</span>
-<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a><span class="co"># write out your results to a text file</span></span>
-<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>GO_results <span class="sc">|&gt;</span></span>
-<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">|&gt;</span></span>
-<span id="cb31-9"><a href="#cb31-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">write_tsv</span>(<span class="at">file =</span> <span class="st">"~/Desktop/GO_GIVE_NAME_DIRECTION_results.tsv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="co"># open up the results in a data frame to examine</span></span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>GO_results <span class="sc">|&gt;</span></span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">|&gt;</span></span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">View</span>()</span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a><span class="co"># write out your results to a text file</span></span>
+<span id="cb40-7"><a href="#cb40-7" aria-hidden="true" tabindex="-1"></a>GO_results <span class="sc">|&gt;</span></span>
+<span id="cb40-8"><a href="#cb40-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">|&gt;</span></span>
+<span id="cb40-9"><a href="#cb40-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">write_tsv</span>(<span class="at">file =</span> <span class="st">"~/Desktop/GO_GIVE_NAME_DIRECTION_results.tsv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 </section>
@@ -499,52 +597,52 @@ dbl (15): logFC_YPS606_WT_etoh_response, pvalue_YPS606_WT_etoh_response, fdr...
 <div class="cell">
 <details open="" class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="co"># a simple visualization</span></span>
-<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">barplot</span>(GO_results, <span class="at">showCategory =</span> <span class="dv">10</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="co"># a simple visualization</span></span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">barplot</span>(GO_results, <span class="at">showCategory =</span> <span class="dv">10</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="02_Gene_Ontology_files/figure-html/unnamed-chunk-15-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="02_Gene_Ontology_files/figure-html/unnamed-chunk-17-1.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
 <details open="" class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="co"># built in visualization with dots instead</span></span>
-<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a><span class="fu">dotplot</span>(GO_results, <span class="at">showCategory=</span><span class="dv">10</span>) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="co"># built in visualization with dots instead</span></span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a><span class="fu">dotplot</span>(GO_results, <span class="at">showCategory=</span><span class="dv">10</span>) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="02_Gene_Ontology_files/figure-html/unnamed-chunk-15-2.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="02_Gene_Ontology_files/figure-html/unnamed-chunk-17-2.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
 <details open="" class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="co"># a more complicated visualization, with more information density</span></span>
-<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(GO_results,</span>
-<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>       <span class="at">showCategory =</span> <span class="dv">15</span>,</span>
-<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>       <span class="fu">aes</span>(richFactor, <span class="fu">fct_reorder</span>(Description, richFactor))) <span class="sc">+</span></span>
-<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_segment</span>(<span class="fu">aes</span>(<span class="at">xend =</span> <span class="dv">0</span>, <span class="at">yend =</span> Description)) <span class="sc">+</span></span>
-<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">color =</span> p.adjust, <span class="at">size =</span> Count)) <span class="sc">+</span></span>
-<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_gradientn</span>(</span>
-<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">colours =</span> <span class="fu">c</span>(<span class="st">"#f7ca64"</span>, <span class="st">"#46bac2"</span>, <span class="st">"#7e62a3"</span>),</span>
-<span id="cb34-9"><a href="#cb34-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">trans =</span> <span class="st">"log10"</span>,</span>
-<span id="cb34-10"><a href="#cb34-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">guide =</span> <span class="fu">guide_colorbar</span>(<span class="at">reverse =</span> <span class="cn">TRUE</span>, <span class="at">order =</span> <span class="dv">1</span>)</span>
-<span id="cb34-11"><a href="#cb34-11" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb34-12"><a href="#cb34-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_size_continuous</span>(<span class="at">range =</span> <span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">10</span>)) <span class="sc">+</span></span>
-<span id="cb34-13"><a href="#cb34-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_discrete</span>(<span class="at">label =</span> <span class="cf">function</span>(x) stringr<span class="sc">::</span><span class="fu">str_trunc</span>(x, <span class="dv">50</span>)) <span class="sc">+</span> <span class="co"># cut off long names</span></span>
-<span id="cb34-14"><a href="#cb34-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">"Rich Factor"</span>) <span class="sc">+</span></span>
-<span id="cb34-15"><a href="#cb34-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ylab</span>(<span class="cn">NULL</span>) <span class="sc">+</span></span>
-<span id="cb34-16"><a href="#cb34-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Biological Processes"</span>) <span class="sc">+</span></span>
-<span id="cb34-17"><a href="#cb34-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="co"># a more complicated visualization, with more information density</span></span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(GO_results,</span>
+<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>       <span class="at">showCategory =</span> <span class="dv">15</span>,</span>
+<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a>       <span class="fu">aes</span>(richFactor, <span class="fu">fct_reorder</span>(Description, richFactor))) <span class="sc">+</span></span>
+<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_segment</span>(<span class="fu">aes</span>(<span class="at">xend =</span> <span class="dv">0</span>, <span class="at">yend =</span> Description)) <span class="sc">+</span></span>
+<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">color =</span> p.adjust, <span class="at">size =</span> Count)) <span class="sc">+</span></span>
+<span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_gradientn</span>(</span>
+<span id="cb43-8"><a href="#cb43-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">colours =</span> <span class="fu">c</span>(<span class="st">"#f7ca64"</span>, <span class="st">"#46bac2"</span>, <span class="st">"#7e62a3"</span>),</span>
+<span id="cb43-9"><a href="#cb43-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">trans =</span> <span class="st">"log10"</span>,</span>
+<span id="cb43-10"><a href="#cb43-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">guide =</span> <span class="fu">guide_colorbar</span>(<span class="at">reverse =</span> <span class="cn">TRUE</span>, <span class="at">order =</span> <span class="dv">1</span>)</span>
+<span id="cb43-11"><a href="#cb43-11" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb43-12"><a href="#cb43-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_size_continuous</span>(<span class="at">range =</span> <span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">10</span>)) <span class="sc">+</span></span>
+<span id="cb43-13"><a href="#cb43-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_discrete</span>(<span class="at">label =</span> <span class="cf">function</span>(x) stringr<span class="sc">::</span><span class="fu">str_trunc</span>(x, <span class="dv">50</span>)) <span class="sc">+</span> <span class="co"># cut off long names</span></span>
+<span id="cb43-14"><a href="#cb43-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">"Rich Factor"</span>) <span class="sc">+</span></span>
+<span id="cb43-15"><a href="#cb43-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ylab</span>(<span class="cn">NULL</span>) <span class="sc">+</span></span>
+<span id="cb43-16"><a href="#cb43-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Biological Processes"</span>) <span class="sc">+</span></span>
+<span id="cb43-17"><a href="#cb43-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="02_Gene_Ontology_files/figure-html/unnamed-chunk-15-3.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="02_Gene_Ontology_files/figure-html/unnamed-chunk-17-3.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
@@ -562,16 +660,16 @@ dbl (15): logFC_YPS606_WT_etoh_response, pvalue_YPS606_WT_etoh_response, fdr...
 <div class="cell">
 <details open="" class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="co"># create a list of the data we want to compare</span></span>
-<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>GO_results_list <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="fu">data.frame</span>(GO_msn24_EtOH_up_results)<span class="sc">$</span>ID,</span>
-<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>                        <span class="fu">data.frame</span>(GO_results)<span class="sc">$</span>ID)</span>
-<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a><span class="co"># visualize the GO results list as a venn diagram</span></span>
-<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a><span class="fu">ggVennDiagram</span>(GO_results_list,</span>
-<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a>              <span class="at">category.names =</span> <span class="fu">c</span>(<span class="st">"msn24 EtOH upregulated"</span>, <span class="st">"NAME ME"</span>)) <span class="sc">+</span></span>
-<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(<span class="at">expand =</span> <span class="fu">expand_scale</span>(<span class="at">mult =</span> <span class="fu">c</span>(<span class="fl">0.5</span>,<span class="dv">0</span>))) <span class="sc">+</span></span>
-<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_distiller</span>(<span class="at">palette =</span> <span class="st">"RdBu"</span></span>
-<span id="cb35-10"><a href="#cb35-10" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="co"># create a list of the data we want to compare</span></span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>GO_results_list <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="fu">data.frame</span>(GO_WT_EtOH_up_results)<span class="sc">$</span>ID,</span>
+<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>                        <span class="fu">data.frame</span>(GO_results)<span class="sc">$</span>ID)</span>
+<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-5"><a href="#cb44-5" aria-hidden="true" tabindex="-1"></a><span class="co"># visualize the GO results list as a venn diagram</span></span>
+<span id="cb44-6"><a href="#cb44-6" aria-hidden="true" tabindex="-1"></a><span class="fu">ggVennDiagram</span>(GO_results_list,</span>
+<span id="cb44-7"><a href="#cb44-7" aria-hidden="true" tabindex="-1"></a>              <span class="at">category.names =</span> <span class="fu">c</span>(<span class="st">"WT EtOH upregulated"</span>, <span class="st">"NAME ME"</span>)) <span class="sc">+</span></span>
+<span id="cb44-8"><a href="#cb44-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(<span class="at">expand =</span> <span class="fu">expand_scale</span>(<span class="at">mult =</span> <span class="fu">c</span>(<span class="fl">0.5</span>,<span class="dv">0</span>))) <span class="sc">+</span></span>
+<span id="cb44-9"><a href="#cb44-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_distiller</span>(<span class="at">palette =</span> <span class="st">"RdBu"</span></span>
+<span id="cb44-10"><a href="#cb44-10" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stderr">
 <pre><code>Warning: `expand_scale()` was deprecated in ggplot2 3.3.0.
@@ -591,15 +689,15 @@ dbl (15): logFC_YPS606_WT_etoh_response, pvalue_YPS606_WT_etoh_response, fdr...
 <div class="cell">
 <details open="" class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>pander<span class="sc">::</span><span class="fu">pander</span>(<span class="fu">sessionInfo</span>())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a>pander<span class="sc">::</span><span class="fu">pander</span>(<span class="fu">sessionInfo</span>())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <p><strong>R version 4.3.3 (2024-02-29)</strong></p>
 <p><strong>Platform:</strong> aarch64-apple-darwin20 (64-bit)</p>
 <p><strong>locale:</strong> en_US.UTF-8||en_US.UTF-8||en_US.UTF-8||C||en_US.UTF-8||en_US.UTF-8</p>
 <p><strong>attached base packages:</strong> <em>stats4</em>, <em>stats</em>, <em>graphics</em>, <em>grDevices</em>, <em>utils</em>, <em>datasets</em>, <em>methods</em> and <em>base</em></p>
-<p><strong>other attached packages:</strong> <em>ggVennDiagram(v.1.5.2)</em>, <em>org.Sc.sgd.db(v.3.18.0)</em>, <em>AnnotationDbi(v.1.64.1)</em>, <em>IRanges(v.2.36.0)</em>, <em>S4Vectors(v.0.40.2)</em>, <em>Biobase(v.2.62.0)</em>, <em>BiocGenerics(v.0.48.1)</em>, <em>clusterProfiler(v.4.10.1)</em>, <em>lubridate(v.1.9.3)</em>, <em>forcats(v.1.0.0)</em>, <em>stringr(v.1.5.1)</em>, <em>dplyr(v.1.1.4)</em>, <em>purrr(v.1.0.2)</em>, <em>readr(v.2.1.5)</em>, <em>tidyr(v.1.3.1)</em>, <em>tibble(v.3.2.1)</em>, <em>ggplot2(v.3.5.1)</em>, <em>tidyverse(v.2.0.0)</em> and <em>pak(v.0.8.0)</em></p>
-<p><strong>loaded via a namespace (and not attached):</strong> <em>RColorBrewer(v.1.1-3)</em>, <em>rstudioapi(v.0.16.0)</em>, <em>jsonlite(v.1.8.8)</em>, <em>magrittr(v.2.0.3)</em>, <em>farver(v.2.1.1)</em>, <em>rmarkdown(v.2.26)</em>, <em>ragg(v.1.2.6)</em>, <em>fs(v.1.6.3)</em>, <em>zlibbioc(v.1.48.0)</em>, <em>vctrs(v.0.6.5)</em>, <em>memoise(v.2.0.1)</em>, <em>RCurl(v.1.98-1.13)</em>, <em>ggtree(v.3.10.1)</em>, <em>htmltools(v.0.5.8.1)</em>, <em>curl(v.6.0.1)</em>, <em>gridGraphics(v.0.5-1)</em>, <em>htmlwidgets(v.1.6.4)</em>, <em>plyr(v.1.8.9)</em>, <em>cachem(v.1.1.0)</em>, <em>igraph(v.2.0.2)</em>, <em>lifecycle(v.1.0.4)</em>, <em>pkgconfig(v.2.0.3)</em>, <em>Matrix(v.1.6-5)</em>, <em>R6(v.2.5.1)</em>, <em>fastmap(v.1.2.0)</em>, <em>gson(v.0.1.0)</em>, <em>GenomeInfoDbData(v.1.2.11)</em>, <em>digest(v.0.6.34)</em>, <em>aplot(v.0.2.2)</em>, <em>enrichplot(v.1.22.0)</em>, <em>colorspace(v.2.1-0)</em>, <em>patchwork(v.1.2.0)</em>, <em>ps(v.1.7.6)</em>, <em>textshaping(v.0.3.7)</em>, <em>RSQLite(v.2.3.5)</em>, <em>labeling(v.0.4.3)</em>, <em>fansi(v.1.0.6)</em>, <em>timechange(v.0.2.0)</em>, <em>httr(v.1.4.7)</em>, <em>polyclip(v.1.10-6)</em>, <em>compiler(v.4.3.3)</em>, <em>pander(v.0.6.5)</em>, <em>bit64(v.4.0.5)</em>, <em>withr(v.3.0.0)</em>, <em>BiocParallel(v.1.36.0)</em>, <em>viridis(v.0.6.5)</em>, <em>DBI(v.1.2.2)</em>, <em>ggforce(v.0.4.2)</em>, <em>MASS(v.7.3-60.0.1)</em>, <em>HDO.db(v.0.99.1)</em>, <em>tools(v.4.3.3)</em>, <em>ape(v.5.7-1)</em>, <em>scatterpie(v.0.2.1)</em>, <em>glue(v.1.7.0)</em>, <em>callr(v.3.7.5)</em>, <em>nlme(v.3.1-164)</em>, <em>GOSemSim(v.2.28.1)</em>, <em>grid(v.4.3.3)</em>, <em>shadowtext(v.0.1.3)</em>, <em>reshape2(v.1.4.4)</em>, <em>fgsea(v.1.28.0)</em>, <em>generics(v.0.1.3)</em>, <em>gtable(v.0.3.4)</em>, <em>tzdb(v.0.4.0)</em>, <em>data.table(v.1.15.2)</em>, <em>hms(v.1.1.3)</em>, <em>tidygraph(v.1.3.1)</em>, <em>utf8(v.1.2.4)</em>, <em>XVector(v.0.42.0)</em>, <em>ggrepel(v.0.9.6)</em>, <em>pillar(v.1.9.0)</em>, <em>yulab.utils(v.0.1.4)</em>, <em>vroom(v.1.6.4)</em>, <em>splines(v.4.3.3)</em>, <em>tweenr(v.2.0.3)</em>, <em>treeio(v.1.26.0)</em>, <em>lattice(v.0.22-5)</em>, <em>bit(v.4.0.5)</em>, <em>tidyselect(v.1.2.0)</em>, <em>GO.db(v.3.18.0)</em>, <em>Biostrings(v.2.70.2)</em>, <em>knitr(v.1.49)</em>, <em>gridExtra(v.2.3)</em>, <em>xfun(v.0.50)</em>, <em>graphlayouts(v.1.1.1)</em>, <em>stringi(v.1.8.3)</em>, <em>lazyeval(v.0.2.2)</em>, <em>ggfun(v.0.1.4)</em>, <em>yaml(v.2.3.8)</em>, <em>evaluate(v.0.23)</em>, <em>codetools(v.0.2-19)</em>, <em>ggraph(v.2.2.1)</em>, <em>qvalue(v.2.34.0)</em>, <em>ggplotify(v.0.1.2)</em>, <em>cli(v.3.6.2)</em>, <em>systemfonts(v.1.0.6)</em>, <em>munsell(v.0.5.0)</em>, <em>processx(v.3.8.3)</em>, <em>Rcpp(v.1.0.12)</em>, <em>GenomeInfoDb(v.1.38.7)</em>, <em>png(v.0.1-8)</em>, <em>parallel(v.4.3.3)</em>, <em>blob(v.1.2.4)</em>, <em>DOSE(v.3.28.2)</em>, <em>bitops(v.1.0-7)</em>, <em>viridisLite(v.0.4.2)</em>, <em>tidytree(v.0.4.6)</em>, <em>scales(v.1.3.0)</em>, <em>crayon(v.1.5.2)</em>, <em>rlang(v.1.1.3)</em>, <em>cowplot(v.1.1.3)</em>, <em>fastmatch(v.1.1-4)</em> and <em>KEGGREST(v.1.42.0)</em></p>
+<p><strong>other attached packages:</strong> <em>ggVennDiagram(v.1.5.2)</em>, <em>org.Sc.sgd.db(v.3.18.0)</em>, <em>AnnotationDbi(v.1.64.1)</em>, <em>IRanges(v.2.36.0)</em>, <em>S4Vectors(v.0.40.2)</em>, <em>Biobase(v.2.62.0)</em>, <em>BiocGenerics(v.0.48.1)</em>, <em>clusterProfiler(v.4.15.1)</em>, <em>lubridate(v.1.9.4)</em>, <em>forcats(v.1.0.0)</em>, <em>stringr(v.1.5.1)</em>, <em>dplyr(v.1.1.4)</em>, <em>purrr(v.1.0.2)</em>, <em>readr(v.2.1.5)</em>, <em>tidyr(v.1.3.1)</em>, <em>tibble(v.3.2.1)</em>, <em>ggplot2(v.3.5.1)</em>, <em>tidyverse(v.2.0.0)</em> and <em>pak(v.0.8.0.1)</em></p>
+<p><strong>loaded via a namespace (and not attached):</strong> <em>RColorBrewer(v.1.1-3)</em>, <em>rstudioapi(v.0.17.1)</em>, <em>jsonlite(v.1.8.9)</em>, <em>magrittr(v.2.0.3)</em>, <em>farver(v.2.1.2)</em>, <em>rmarkdown(v.2.29)</em>, <em>ragg(v.1.3.3)</em>, <em>fs(v.1.6.5)</em>, <em>zlibbioc(v.1.48.2)</em>, <em>vctrs(v.0.6.5)</em>, <em>memoise(v.2.0.1)</em>, <em>RCurl(v.1.98-1.16)</em>, <em>ggtree(v.3.10.1)</em>, <em>htmltools(v.0.5.8.1)</em>, <em>curl(v.6.1.0)</em>, <em>gridGraphics(v.0.5-1)</em>, <em>htmlwidgets(v.1.6.4)</em>, <em>plyr(v.1.8.9)</em>, <em>cachem(v.1.1.0)</em>, <em>igraph(v.2.1.2)</em>, <em>lifecycle(v.1.0.4)</em>, <em>pkgconfig(v.2.0.3)</em>, <em>Matrix(v.1.6-5)</em>, <em>R6(v.2.5.1)</em>, <em>fastmap(v.1.2.0)</em>, <em>gson(v.0.1.0)</em>, <em>GenomeInfoDbData(v.1.2.11)</em>, <em>digest(v.0.6.37)</em>, <em>aplot(v.0.2.4)</em>, <em>enrichplot(v.1.22.0)</em>, <em>colorspace(v.2.1-1)</em>, <em>patchwork(v.1.3.0)</em>, <em>ps(v.1.8.1)</em>, <em>textshaping(v.0.4.1)</em>, <em>RSQLite(v.2.3.9)</em>, <em>labeling(v.0.4.3)</em>, <em>timechange(v.0.3.0)</em>, <em>httr(v.1.4.7)</em>, <em>polyclip(v.1.10-7)</em>, <em>compiler(v.4.3.3)</em>, <em>pander(v.0.6.5)</em>, <em>bit64(v.4.6.0-1)</em>, <em>withr(v.3.0.2)</em>, <em>BiocParallel(v.1.36.0)</em>, <em>viridis(v.0.6.5)</em>, <em>DBI(v.1.2.3)</em>, <em>ggforce(v.0.4.2)</em>, <em>MASS(v.7.3-60.0.1)</em>, <em>HDO.db(v.0.99.1)</em>, <em>tools(v.4.3.3)</em>, <em>ape(v.5.8-1)</em>, <em>scatterpie(v.0.2.4)</em>, <em>glue(v.1.8.0)</em>, <em>callr(v.3.7.6)</em>, <em>nlme(v.3.1-166)</em>, <em>GOSemSim(v.2.28.1)</em>, <em>grid(v.4.3.3)</em>, <em>shadowtext(v.0.1.4)</em>, <em>reshape2(v.1.4.4)</em>, <em>fgsea(v.1.28.0)</em>, <em>generics(v.0.1.3)</em>, <em>gtable(v.0.3.6)</em>, <em>tzdb(v.0.4.0)</em>, <em>data.table(v.1.16.4)</em>, <em>hms(v.1.1.3)</em>, <em>tidygraph(v.1.3.1)</em>, <em>utf8(v.1.2.4)</em>, <em>XVector(v.0.42.0)</em>, <em>ggrepel(v.0.9.6)</em>, <em>pillar(v.1.10.1)</em>, <em>yulab.utils(v.0.1.9)</em>, <em>vroom(v.1.6.5)</em>, <em>splines(v.4.3.3)</em>, <em>tweenr(v.2.0.3)</em>, <em>treeio(v.1.26.0)</em>, <em>lattice(v.0.22-6)</em>, <em>bit(v.4.5.0.1)</em>, <em>tidyselect(v.1.2.1)</em>, <em>GO.db(v.3.18.0)</em>, <em>Biostrings(v.2.70.3)</em>, <em>knitr(v.1.49)</em>, <em>gridExtra(v.2.3)</em>, <em>xfun(v.0.50)</em>, <em>graphlayouts(v.1.2.1)</em>, <em>stringi(v.1.8.4)</em>, <em>lazyeval(v.0.2.2)</em>, <em>ggfun(v.0.1.8)</em>, <em>yaml(v.2.3.10)</em>, <em>evaluate(v.1.0.3)</em>, <em>codetools(v.0.2-20)</em>, <em>ggraph(v.2.2.1)</em>, <em>qvalue(v.2.34.0)</em>, <em>BiocManager(v.1.30.25)</em>, <em>ggplotify(v.0.1.2)</em>, <em>cli(v.3.6.3)</em>, <em>systemfonts(v.1.1.0)</em>, <em>munsell(v.0.5.1)</em>, <em>processx(v.3.8.5)</em>, <em>Rcpp(v.1.0.14)</em>, <em>GenomeInfoDb(v.1.38.8)</em>, <em>png(v.0.1-8)</em>, <em>parallel(v.4.3.3)</em>, <em>blob(v.1.2.4)</em>, <em>DOSE(v.3.28.2)</em>, <em>bitops(v.1.0-9)</em>, <em>viridisLite(v.0.4.2)</em>, <em>tidytree(v.0.4.6)</em>, <em>scales(v.1.3.0)</em>, <em>crayon(v.1.5.3)</em>, <em>rlang(v.1.1.5)</em>, <em>cowplot(v.1.1.3)</em>, <em>fastmatch(v.1.1-6)</em> and <em>KEGGREST(v.1.42.0)</em></p>
 </div>
 </div>
 </section>
