@@ -38,7 +38,7 @@ pak(c("tidyverse", "knitr", "readr",
        "dplyr", "stringr"))
 
 # We also use the bioconductor packages "ShortRead" and "rfastp"
-pak("Rfastp", "ShortRead")
+pak(c("Rfastp", "ShortRead"))
 ```
 
 ```{r, message=FALSE}
