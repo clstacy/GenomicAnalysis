@@ -11,7 +11,6 @@ format:
 set.seed("832")
 ```
 
-
 ## Description
 
 This activity is intended to familiarize you with raw bioinformatic sequence files. Specifically, we'll be working with short read sequencing data generated from an Illumina platform.
@@ -23,7 +22,6 @@ At the end of this exercise, you should be able to:
 -   Load and read into R a raw gzipped fastq file.
 -   Inspect sequence quality and evaluate results.
 -   Perform quality control on raw data and save the processed output.
-
 
 ## Package Install
 
@@ -133,9 +131,8 @@ path_fastq_WT_MOCK_REP1 <- path.expand("~/Desktop/Genomic_Data_Analysis/Data/Raw
 fastq_WT_MOCK_REP1 <- readFastq(path_fastq_WT_MOCK_REP1)
 ```
 
-
-
 What if you want to check a read file without loading the whole thing into memory? We can use the `yield` function from the ShortRead package to do this. The fastq file we are working with today is small enough that we can load the whole thing into memory, but this is a useful function for looking at your own fastq files.
+
 ```{r}
 subsampled_fastq_WT_MOCK_REP1 <- yield(FastqSampler(path_fastq_WT_MOCK_REP1, n=10000)) # where n is the number of reads you want to sample
 # the fastq files we downloaded are smaller than a normal fastq file, 
@@ -143,6 +140,7 @@ subsampled_fastq_WT_MOCK_REP1 <- yield(FastqSampler(path_fastq_WT_MOCK_REP1, n=1
 ```
 
 A few quick ways to examine the fastq data object:
+
 ```{r view-fastq-seqs}
 # Typing the name of the object gives us a simple summary
 fastq_WT_MOCK_REP1
@@ -375,7 +373,11 @@ conda config --set channel_priority strict
 conda config --show channels
 ```
 
-Now, we need to create a conda environment with our packages. You can do so with the code below. This may take a couple of minutes the first time we run it.
+Now, we need to create a conda environment with our packages. You can do so with the code below.
+
+::: callout-note
+The below code may take a couple of minutes the first time we run it.
+:::
 
 ```{bash create-condaEnvironment-seqs, engine.opts='-l'}
 # create an enviornment for our QC packages
