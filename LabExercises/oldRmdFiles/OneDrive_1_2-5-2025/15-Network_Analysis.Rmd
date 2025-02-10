@@ -1,0 +1,1050 @@
+---
+title: "Network Analyis"
+author: "Carson Stacy & Jeffrey Lewis"
+date: "Fall 2023"
+output:
+  html_document:
+    code_folding: show
+    embed-resources: true
+
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+# WGCNA
+
+last updated: `r Sys.Date()`
+
+```{r setup-wgcna, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache=TRUE)
+set.seed("1492")
+```
+
+**Install Packages**
+
+As usual, make sure we have the right packages for this exercise
+
+```{r ready-packages-wgcna, cache=FALSE}
+if (!require("pacman")) install.packages("pacman"); library(pacman)
+
+# let's load all of the files we were using and want to have again today
+p_load("tidyverse", "knitr", "readr",
+       "pander", "BiocManager", 
+       "dplyr", "stringr", 
+       "statmod", # required dependency, need to load manually on some macOS versions.
+       "purrr", # for working with lists (beautify column names)
+       "reactable") # for pretty tables.
+
+# for today:
+# p_load("WGCNA")   # WGCNA is available on CRAN
+if (!require("WGCNA")) BiocManager::install("WGCNA", force=TRUE); library(WGCNA)
+
+
+# 
+# # We also need these Bioconductor packages today.
+p_load("edgeR")
+p_load("matrixStats")
+p_load("org.Sc.sgd.db")
+p_load("AnnotationDbi")
+p_load("cowplot")
+p_load("igraph")
+
+```
+
+### Description
+
+Use WGCNA to identify modules identified in patterns of transcriptomic changes across samples spanning multiple genotypes and stress conditions. Through this exercise, we aim to gain practical insights into interpreting WGCNA outputs and leveraging this technique for a deeper understanding of genomic landscapes and network analysis.
+
+## Learning Objectives
+
+At the end of this exercise, you should be able to:
+
+-   Understand the concept of co-expression modules.
+-   Interpret module colors and visualizations.
+-   Evaluate module preservation and critically analyze results.
+
+
+### Loading in the count data file
+
+*We are downloading the expected raw counts from a
+Github repository using the code below. Just as in previous exercises,
+assign the data to the variable `counts`. You can change the file path
+if you have saved it to your computer in a different location.*
+
+```{r load-counts-raw-wgcna}
+# Load in raw counts for all samples
+counts <- read.delim('https://github.com/clstacy/GenomicDataAnalysis_Fa23/raw/main/data/YPS606_TF_Rep1_4_ExpectedCounts.txt',
+    sep = "\t",
+    header = T,
+    row.names = 1 # convert first column to rownames
+  )
+```
+
+### Preprocessing raw count data
+
+```{r tidy-wgcna}
+# tidy raw counts to visualize distributions
+tidy_counts <- counts %>%
+  rownames_to_column("gene_id") %>%
+  tidyr::pivot_longer(
+    .,                        # The dot is the the input data, magrittr tutorial
+    col = -gene_id
+    ) %>%  
+  separate_wider_delim(name, delim = "_", names = c("strain", "stress", "replicate"),cols_remove = FALSE)
+
+(
+p <- tidy_counts %>%
+    ggplot(., aes(x = replicate, y = value)) +        # x = treatment, y = RNA Seq count
+    geom_violin() +                                   # violin plot, show distribution
+    geom_point(alpha = 0.2) +                         # add transparent points
+    theme_bw() +
+    theme(
+      axis.text.x = element_text(angle = 90)          # Rotate treatment text
+    ) +
+    labs(x = "Treatment Groups", y = "RNA Seq Counts") +
+    facet_grid(cols = vars(stress), rows = vars(strain), drop = TRUE, scales = "free_x") +     # Facet by condition
+    # scale_y_log10() +
+    ggtitle("Raw count distributions")
+)
+```
+
+
+### Data normalization
+
+Raw counts need to be normalized for read depth to be comparable across samples. Let's use edgeR to normalize the raw counts by converting them to cpm. Also, WGCNA cannot handle missing data, so transcripts with zero counts in any sample are removed. 
+
+```{r normalize-edgeR-wgcna}
+# read into a DGElist
+y <- edgeR::DGEList(counts,
+                    group=as.factor(
+                      # remove replicate from name
+                      sub("_[^_]+$", "", colnames(counts))
+                    ),
+                    genes = rownames(counts)
+                    )
+
+# filter low counts
+keep <- rowSums(cpm(y) > 1) >= 4
+y <- y[keep,]
+
+# normalize with cpm
+normalized_counts <- cpm(y,
+                         log = TRUE)
+str(normalized_counts)
+```
+
+Now that we've normalized the cpm data, let's look at the distributions again
+
+```{r tidy-normalized-data-wgcna}
+# create data 
+tidy_normalized_counts <- normalized_counts %>%
+  data.frame() %>%
+  rownames_to_column("gene_id") %>%
+  tidyr::pivot_longer(
+    .,                        # The dot is the the input data, magrittr tutorial
+    col = -gene_id
+    ) %>%  
+  separate_wider_delim(name, delim = "_", names = c("strain", "stress", "replicate"),cols_remove = FALSE)
+
+(
+p_normalized <- tidy_normalized_counts %>%
+    ggplot(., aes(x = replicate, y = value)) +        # x = treatment, y = RNA Seq count
+    geom_violin() +                                   # violin plot, show distribution
+    geom_point(alpha = 0.2) +                         # add transparent points
+    theme_bw() +
+    theme(
+      axis.text.x = element_text(angle = 90)          # Rotate treatment text
+    ) +
+    labs(x = "Treatment Groups", y = "normalized expression") +
+    facet_grid(cols = vars(stress),rows = vars(strain), drop = TRUE, scales = "free_x") +     # Facet by condition
+    # scale_y_log10() +
+    ggtitle("Normalized CPM distribution")
+)
+```
+
+## Variability-based subsetting of gene list
+
+For WGCNA, we don't want to correlate all of the genes because (1) computational limitation and (2) genes that vary a small amount increase the number of variables in the model, and are uninformative, making it harder to be confident in the patterns we do see. One way to account for this is by subsetting our entire gene list. 
+
+One common approach for subsetting genes is taking genes whose variance is greater than the $n^{th}$ quantile of gene variances. We'll do that now:
+
+```{r get-rowwise-variances-wgcna}
+# get the variance for each row (gene)
+rv_wpn <- matrixStats::rowVars(normalized_counts)
+
+# see a summary of the quantiles of variances
+summary(rv_wpn)
+```
+
+
+There's significant debate on whether or not to filter on variance (hub genes may not vary much), so we will use light filtering on the 10% of genes with the lowest variance
+
+```{r find-quantile-rowwise-variances-wgcna}
+# get variance corresponding to 10th percentile
+q10_wpn <- quantile( matrixStats::rowVars(normalized_counts), .1)  # common cutoff
+
+# # get variance corresponding to 95th percentile--see how the data changes with high filtering
+# q95_wpn <- quantile( matrixStats::rowVars(normalized_counts), .95)  # <= changed to 95 quantile 
+
+# to reduce dataset, only get genes with variance greater than above
+normalized_counts_variable_genes <- normalized_counts[ rv_wpn > q10_wpn, ]
+
+str(normalized_counts_variable_genes)
+```
+Notice the number of genes retained is a bit fewer.
+
+What are the distributions of counts of the normalized cpm's of the retained genes?
+
+```{r see-distro-normalized-variable-genes-wgcna}
+tidy_normalized_counts_variable_genes <- normalized_counts_variable_genes %>%
+  data.frame() %>%
+  rownames_to_column("gene_id") %>%
+  pivot_longer(-gene_id) %>%  
+  separate_wider_delim(name, delim = "_", names = c("strain", "stress", "replicate"),cols_remove = FALSE)
+
+(
+p_normalized_varGenes <- tidy_normalized_counts_variable_genes %>%
+    ggplot(., aes(x = replicate, y = value)) +        # x = treatment, y = RNA Seq count
+    geom_violin() +                                   # violin plot, show distribution
+    geom_point(alpha = 0.2) +                         # add transparent points
+    theme_bw() +
+    theme(
+      axis.text.x = element_text(angle = 90)          # Rotate treatment text
+    ) +
+    labs(x = "Treatment Groups", y = "normalized expression") +
+    facet_grid(cols = vars(stress),rows = vars(strain), drop = TRUE, scales = "free_x") +     # Facet by condition
+    # scale_y_log10() +
+    ggtitle("Normalized CPM distribution")
+)
+```
+
+For the analyses we've done so far, we've needed the columns to correspond to samples and the rows to correspond to genes. WGCNA expects the opposite, where columns are genes and rows are samples. We can use the transpose function in r `t()` in order to convert our data. Let's do that now:
+
+```{r tranpose-variable-genes-wgcna}
+# transpose our normalized count matrix and save to new object
+variable_genes_matrix = t(normalized_counts_variable_genes)
+
+# Look at first 5 rows and 10 columns
+variable_genes_matrix[1:5,1:10]           
+```
+
+### WGCNA thresholding
+
+We can see now that the `rows = treatments` and `columns = gene probes`. We’re ready to start WGCNA. A correlation network would be a complete network (all genes would be connected to all other genes). Hence we need to pick a threshhold value (if correlation is below threshold, remove the edge). We assume the true biological network follows a scale-free structure (see papers by Albert Barabasi).
+
+To do that, WGCNA will try a range of soft thresholds and create a diagnostic plot. This step can take several minutes.
+
+```{r}
+# library(WGCNA)
+allowWGCNAThreads(nThreads = 4)          # allow multi-threading (optional)
+#> Allowing multi-threading with up to 4 threads.
+
+# Choose a set of soft-thresholding powers
+powers = c(c(1:10), seq(from = 12, to = 20, by = 2))
+
+# Call the network topology analysis function
+sft = pickSoftThreshold(
+  variable_genes_matrix, # <= Input data
+  #blockSize = 30,
+  powerVector = powers,
+  verbose = 5
+  )
+```
+Let's visualize those results:
+
+```{r}
+par(mfrow = c(1,2));
+cex1 = 0.9;
+
+plot(sft$fitIndices[, 1],
+     -sign(sft$fitIndices[, 3]) * sft$fitIndices[, 2],
+     xlab = "Soft Threshold (power)",
+     ylab = "Scale Free Topology Model Fit, signed R^2",
+     main = paste("Scale independence")
+)
+text(sft$fitIndices[, 1],
+     -sign(sft$fitIndices[, 3]) * sft$fitIndices[, 2],
+     labels = powers, cex = cex1, col = "red"
+)
+abline(h = 0.90, col = "red")
+plot(sft$fitIndices[, 1],
+     sft$fitIndices[, 5],
+     xlab = "Soft Threshold (power)",
+     ylab = "Mean Connectivity",
+     type = "n",
+     main = paste("Mean connectivity")
+)
+text(sft$fitIndices[, 1],
+     sft$fitIndices[, 5],
+     labels = powers,
+     cex = cex1, col = "red")
+```
+
+Pick a soft threshold power near the curve of the plot. We’ll pick 8, but feel free to experiment with other powers to see how it affects your results. Now we can create the network using the `blockwiseModules` command. The `blockwiseModule` may take a while to run, since it is constructing the TOM (topological overlap matrix) and several other steps. While it runs, take a look at the `blockwiseModule` documentation (link to [vignette][https://www.rdocumentation.org/packages/WGCNA/versions/1.69/topics/blockwiseModules]) for more information on the parameters. How might you change the parameters to get more or less modules?
+
+### Generate network
+
+```{r}
+# NOTE: Be sure to run this entire chunk at once
+picked_power = 8
+cor <- WGCNA::cor         # Force it to use WGCNA cor function (fix a namespace conflict issue)
+variable_genes_network <- blockwiseModules(variable_genes_matrix,                # <= input here
+
+                          # == Adjacency Function ==
+                          power = picked_power,                # <= power here
+                          networkType = "signed",
+
+                          # == Tree and Block Options ==
+                          deepSplit = 2,
+                          pamRespectsDendro = F,
+                          # detectCutHeight = 0.75,
+                          minModuleSize = 30,
+                          maxBlockSize = 4000,
+
+                          # == Module Adjustments ==
+                          reassignThreshold = 0,
+                          mergeCutHeight = 0.25,
+
+                          # == TOM == Archive the run results in TOM file (saves time)
+                          saveTOMs = T,
+                          saveTOMFileBase = "ER",
+
+                          # == Output Options
+                          numericLabels = F,
+                          verbose = 3)
+
+# return cor() to be the usual command
+cor <- stats::cor
+```
+
+Let's visualize a dendrogram of those modules, each terminal branch corresponds to a single gene.
+```{r}
+# Convert labels to colors for plotting
+mergedColors_var_genes = variable_genes_network$colors
+# Plot the dendrogram and the module colors underneath
+plotDendroAndColors(
+  variable_genes_network$dendrograms[[1]],
+  mergedColors_var_genes[variable_genes_network$blockGenes[[1]]],
+  "Module colors",
+  dendroLabels = FALSE,
+  hang = 0.03,
+  addGuide = TRUE,
+  guideHang = 0.05 )
+```
+
+Now let's extract the genes and their coresponding module/color to a data frame
+```{r}
+modules_variable_genes_df <- data.frame(
+  gene_id = names(variable_genes_network$colors),
+  colors = variable_genes_network$colors
+)
+
+head(modules_variable_genes_df)
+```
+
+### Visualize Modules
+
+Plot gene expression correlations in a grid, based on genotype and module membership
+```{r fig.height=12, fig.width=8}
+(
+  var_genes_plot <- normalized_counts_variable_genes %>%
+  data.frame() %>%
+    mutate(
+        gene_id = row.names(.)
+    ) %>%
+    pivot_longer(-gene_id) %>%
+    mutate(
+        module = variable_genes_network$colors[gene_id]
+    ) %>% 
+  separate_wider_delim(name, delim = "_", names = c("strain", "stress", "replicate"),cols_remove = FALSE) %>%
+  ggplot(., aes(x=name, y=value, group=gene_id)) +
+    geom_line(aes(color = "grey"), size=1,
+            alpha = 0.2) +
+    geom_line(aes(color = module),
+            alpha = 0.2) +
+    # geom_boxplot(width=0.5,
+    #              aes(group=name, color = module),
+    #              outlier.shape = NA,
+    #              alpha=0.9) +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 90)) +
+    facet_grid(rows = vars(module), 
+             cols= vars(strain),
+             scales = "free"
+             ) +
+    scale_x_discrete(position = "top") +
+    labs(x = "treatment",
+       y = "normalized expression") +
+    # use color variable as the color
+    scale_color_identity()
+)
+```
+
+
+
+### Heatmap correlating modules
+
+Now, let's generate a heatmap of the relationship between the modules
+
+```{r}
+# Get Module Eigengenes per cluster
+MEs0 <- moduleEigengenes(variable_genes_matrix, mergedColors_var_genes)$eigengenes
+
+# Reorder modules so similar modules are next to each other
+MEs0 <- orderMEs(MEs0)
+module_order = names(MEs0) %>% gsub("ME","", .)
+
+# Add treatment names
+MEs0$treatment = row.names(MEs0)
+
+# tidy & plot data
+mME = MEs0 %>%
+  pivot_longer(-treatment) %>%
+  mutate(
+    name = gsub("ME", "", name),
+    name = factor(name, levels = module_order)
+  )
+
+mME %>% ggplot(., aes(x=treatment, y=name, fill=value)) +
+  geom_tile() +
+  theme_bw() +
+  scale_fill_gradient2(
+    low = "blue",
+    high = "red",
+    mid = "white",
+    midpoint = 0,
+    limit = c(-1,1)) +
+  theme(axis.text.x = element_text(angle=90)) +
+  labs(title = "Module-trait Relationships", y = "Modules", fill="corr")
+```
+
+
+### Generate & Visualize Networks
+
+We can generate a network graph file for analysis in Cytoscape, or as an edge/vertices file.
+
+```{r fig.height=12, fig.width=12}
+# correlation cutoff
+corr_cutoff = 0.3
+
+# first, create adjacency matrix
+adjacency = adjacency(variable_genes_matrix, power=picked_power, type="signed")
+
+# Calculate topological overlap matrix and dissimilarity from adjacency matrix
+TOM = TOMsimilarity(adjacency, TOMType="signed")
+
+# Add gene names to row and columns
+rownames(TOM) = AnnotationDbi::select(org.Sc.sgd.db,keys=row.names(adjacency),columns="GENENAME") %>% mutate(label = case_when(
+  is.na(GENENAME) ~ ORF,
+  TRUE ~ GENENAME)) %>% pull(label)
+
+
+colnames(TOM) = AnnotationDbi::select(org.Sc.sgd.db,keys=row.names(adjacency),columns="GENENAME") %>% mutate(label = case_when(
+  is.na(GENENAME) ~ ORF,
+  TRUE ~ GENENAME)) %>% pull(label)
+
+# assign TOM to new variable
+adj <- TOM
+
+# only show correlations greater than corr_cutoff
+adj[adj > corr_cutoff] = 1
+
+# set all correlations below that threshold to 0
+adj[adj != 1] = 0
+
+# graph adjacency network
+network_graph_data <- graph.adjacency(adj)
+
+# remove redundant self-loops in the network
+network_graph_data <- simplify(network_graph_data)
+
+# add colors for the network graph from constructed network modules
+V(network_graph_data)$color <- variable_genes_network$colors
+
+# set plotting margins
+par(mar=c(0,0,0.5,0))
+# remove unconnected nodes
+network_graph_data <- delete.vertices(network_graph_data,
+                                      degree(network_graph_data)==0)
+
+
+plot(network_graph_data, 
+     layout=layout.fruchterman.reingold(network_graph_data, niter=1000),
+     vertex.size=3,edge.arrow.size=0.1, 
+     vertex.label.cex = 0.01,  # increase this value to see gene names
+     vertex.label.color= "black", rescale=TRUE, ylim=c(-1,1),xlim=c(-1,1),
+     main = "Network plot for most variable genes")
+
+```
+
+
+### Save network for analysis in cytoscape
+```{r}
+# choose where to save files
+dir_cytoscape_files <- path.expand("~/Desktop/Genomic_Data_Analysis/Analysis/Network/WGCNA")
+
+#create that directory if it doesn't exist
+if (!dir.exists(dir_cytoscape_files)) {dir.create(dir_cytoscape_files, recursive = TRUE)}
+
+# save files for loading into Cytoscape
+exportNetworkToCytoscape(
+  adjMat = adjacency,
+  edgeFile = paste0(dir_cytoscape_files,"variable_gene_network_edges.tsv"),
+  nodeFile = paste0(dir_cytoscape_files,"variable_gene_network_nodes.tsv"),
+  threshold=0.3,
+  nodeAttr = modules_variable_genes_df$colors
+)
+```
+
+### GO enrichments
+
+Let's add GO enrichments to the module pattern graph, so we can make sense of what genes are composing each module.
+
+```{r fig.height=18, fig.width=8}
+# create list of genes in each one
+variable_geneIDs_module_list <- normalized_counts_variable_genes %>%
+  data.frame() %>%
+    mutate(
+        gene_id = row.names(.)
+    ) %>%
+    pivot_longer(-gene_id) %>%
+    mutate(
+        module = variable_genes_network$colors[gene_id]
+    ) %>%
+  group_by(module) %>%
+  # only get genes that are DE
+  # filter(DE_direction != 0) %>%
+  group_split() %>% # split into many lists
+  purrr::set_names(purrr::map_chr(., ~.x$module[1])) %>% # assign names
+  # get just the ORF names
+  map(., ~ .x |> pull(all_of("gene_id"))) %>%
+  # remove duplicates
+  map(., ~ unique(.))
+  
+
+# run enrichment for each module
+GO_enrich_variable_gene_modules <- clusterProfiler::compareCluster(
+                                  geneCluster   = variable_geneIDs_module_list, 
+                                  ont           = "BP",
+                                  OrgDb         = org.Sc.sgd.db,
+                                  pAdjustMethod = "BH",
+                                  pvalueCutoff  = 0.5, # high to get for all modules
+                                  qvalueCutoff  = 0.5,
+                                  readable      = FALSE,
+                                  fun           = 'enrichGO',
+                                  keyType       = 'ORF'
+                                  )  |>
+  # let's add a 'richFactor' column that gives us the proportion of genes DE in the term
+  mutate(richFactor = Count / as.numeric(sub("/\\d+", "", BgRatio)))
+
+
+# plot those enrichments
+GO_enrich_variable_gene_modules %>%
+  as.data.frame() %>% 
+  group_by(Cluster) %>%
+  slice_min(order_by=pvalue, n = 5) %>%
+  ggplot(.,
+           aes(Cluster, fct_reorder(Description, richFactor))) +
+      geom_point(aes(color = p.adjust, size = Count)) +
+      scale_color_gradientn(
+        colours = c("#f7ca64", "#46bac2", "#7e62a3"),
+        trans = "log10",
+        guide = guide_colorbar(reverse = TRUE, order = 1)
+      ) +
+      scale_size_continuous(range = c(2, 12)) +
+      scale_x_discrete(position = "top") +
+      scale_y_discrete(labels = function(x) str_wrap(x, width = 25)) +
+      xlab("Module") +
+      ylab(NULL) +
+      ggtitle("Enriched GO Categories by Module") +
+      # facet_wrap(~DE, scales = "free_y") +
+      theme_bw() +
+      theme(text = element_text(size=14),
+            axis.text.x = element_text(angle = 90,hjust=0) )
+```
+
+This next code chunk adds those GO terms alongside the module expression graph.
+
+```{r fig.height=12, fig.width=8}
+# here are the data to add to cowplot:
+GO_summaries_variable_genes <- GO_enrich_variable_gene_modules %>%
+  as.data.frame() %>% 
+  group_by(Cluster) %>%
+  slice_min(order_by=p.adjust, n = 5) %>%
+  slice_head(n = 5) %>%
+  mutate(Description = case_when(
+    p.adjust < 0.05 ~ paste0(Description," (",Count,")"),
+    TRUE ~ " "
+  )) %>%
+  summarize(description = str_c(Description, collapse = "\n")) %>%
+  pull(description)
+
+
+# draw plot with GO terms
+cowplot::ggdraw(var_genes_plot +
+                  theme(plot.margin = margin(t = 0.5, r = 5, b = 0.5, l = 0.1, unit = "cm"))) +
+  cowplot::draw_text(GO_summaries_variable_genes, 
+                     x = 0.76,  # Adjust this value for the desired horizontal position
+                     y = rev(seq(0.1, 0.82, length.out = length(GO_summaries_variable_genes))),  # Adjust this sequence for the desired vertical positions
+                     size = 6, 
+                     hjust = 0,  # Align to the left
+                     vjust = 0.5)
+```
+
+
+
+## Create a network using genes identified as differentially expressed
+
+Our network so far didn't use any prior information about genes to include or exclude, with the exception of removing the least variable (uninformative) genes. We do have information about the genes that are considered differentially expressed in their corresponding genotype and environment. What does the network look like if we build it based on those genes that have been identified as differentially expressed? 
+
+```{r}
+# set FDR threshold for being considered a DE gene, 
+# this is applied to the data we are loading in here.
+FDR_cutoff <- 0.01
+
+# Load in DE gene summary
+DE_genes <- readr::read_delim("https://github.com/clstacy/GenomicDataAnalysis_Fa23/raw/main/data/DE_yeast_TF_stress.txt.gz",
+    delim = "\t", 
+    escape_double = FALSE, 
+    name_repair = "universal",
+    show_col_types=FALSE,
+    trim_ws = TRUE) %>%
+  dplyr::select(ID, contains("FDR")) %>%
+  dplyr::select(ID, contains(".v.")) %>%
+  pivot_longer(-ID, names_to = "contrast", values_to = "FDR") %>%
+  # only get genes with FDR < 0.01
+  filter(FDR < FDR_cutoff) %>%
+  pull(ID) %>%
+  unique()
+
+# subset the counts to only be counts for genes that are DE
+counts_DE <- counts %>%
+  rownames_to_column("ORF") %>%
+  dplyr::filter(ORF %in% DE_genes) %>%
+  column_to_rownames("ORF")
+
+# normalize with cpm, filter to just DE genes
+normalized_counts_DE_genes <- cpm(y,
+                         log = TRUE) %>%
+  data.frame() %>%
+  rownames_to_column("ORF") %>%
+  dplyr::filter(ORF %in% DE_genes) %>%
+  column_to_rownames("ORF") %>%
+  as.matrix()
+
+
+DE_genes_matrix = t(normalized_counts_DE_genes)
+```
+
+What is the correct power for this analysis?
+
+### Find ideal power
+```{r}
+# Choose a set of soft-thresholding powers
+powers = c(c(1:10), seq(from = 12, to = 20, by = 2))
+
+# Call the network topology analysis function
+sft = pickSoftThreshold(
+  DE_genes_matrix,             # <= Input data
+  #blockSize = 30,
+  powerVector = powers,
+  verbose = 5
+  )
+
+par(mfrow = c(1,2));
+cex1 = 0.9;
+
+plot(sft$fitIndices[, 1],
+     -sign(sft$fitIndices[, 3]) * sft$fitIndices[, 2],
+     xlab = "Soft Threshold (power)",
+     ylab = "Scale Free Topology Model Fit, signed R^2",
+     main = paste("Scale independence")
+)
+text(sft$fitIndices[, 1],
+     -sign(sft$fitIndices[, 3]) * sft$fitIndices[, 2],
+     labels = powers, cex = cex1, col = "red"
+)
+abline(h = 0.90, col = "red")
+plot(sft$fitIndices[, 1],
+     sft$fitIndices[, 5],
+     xlab = "Soft Threshold (power)",
+     ylab = "Mean Connectivity",
+     type = "n",
+     main = paste("Mean connectivity")
+)
+text(sft$fitIndices[, 1],
+     sft$fitIndices[, 5],
+     labels = powers,
+     cex = cex1, col = "red")
+```
+It looks like a higher power would better fit this data. Let's try with 12. You can try changing to a different threshold and see how the results change.
+
+```{r}
+picked_power = 12
+cor <- WGCNA::cor         # Force it to use WGCNA cor function (fix a namespace conflict issue)
+DE_genes_network <- blockwiseModules(DE_genes_matrix,                # <= input here
+
+                          # == Adjacency Function ==
+                          power = picked_power,                # <= power here
+                          networkType = "signed",
+
+                          # == Tree and Block Options ==
+                          deepSplit = 2,
+                          pamRespectsDendro = F,
+                          # detectCutHeight = 0.75,
+                          minModuleSize = 30,
+                          maxBlockSize = 4000,
+
+                          # == Module Adjustments ==
+                          reassignThreshold = 0,
+                          mergeCutHeight = 0.25,
+
+                          # == TOM == Archive the run results in TOM file (saves time)
+                          saveTOMs = T,
+                          saveTOMFileBase = "ER",
+
+                          # == Output Options
+                          numericLabels = F,
+                          verbose = 3)
+
+# fix namespace issue with cor to return to desired function
+cor <- stats::cor
+```
+
+```{r}
+# Convert labels to colors for plotting
+mergedColors_DE = DE_genes_network$colors
+# Plot the dendrogram and the module colors underneath
+plotDendroAndColors(
+  DE_genes_network$dendrograms[[1]],
+  mergedColors_DE[DE_genes_network$blockGenes[[1]]],
+  "Module colors",
+  dendroLabels = FALSE,
+  hang = 0.03,
+  addGuide = TRUE,
+  guideHang = 0.05 )
+```
+
+
+Now let's extract the genes and their corresponding module/color to a data frame.
+
+```{r}
+modules_DE_genes_df <- data.frame(
+  gene_id = names(DE_genes_network$colors),
+  colors = DE_genes_network$colors
+)
+
+head(modules_DE_genes_df)
+```
+
+
+
+### Visualize cluster patterns
+
+```{r fig.height=12, fig.width=8}
+(
+  DE_genes_plot <- normalized_counts_DE_genes %>%
+  data.frame() %>%
+    mutate(
+        gene_id = row.names(.)
+    ) %>%
+    pivot_longer(-gene_id) %>%
+    mutate(
+        module = DE_genes_network$colors[gene_id]
+    ) %>% 
+  separate_wider_delim(name, delim = "_", names = c("strain", "stress", "replicate"),cols_remove = FALSE) %>%
+  ggplot(., aes(x=name, y=value+1, group=gene_id)) +
+    geom_line(aes(color = "grey"), size=1,
+            alpha = 0.2) +
+    geom_line(aes(color = module),
+            alpha = 0.2) +
+    # geom_boxplot(width=0.5,
+    #              aes(group=name, color = module),
+    #              outlier.shape = NA,
+    #              alpha=0.9) +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 90)) +
+    facet_grid(rows = vars(module), 
+             cols= vars(strain),
+             scales = "free"
+             ) +
+    scale_x_discrete(position = "top") +
+    labs(x = "treatment",
+       y = "normalized expression") +
+    # use color variable as the color
+    scale_color_identity()
+)
+
+```
+
+
+
+Generate a heatmap of the eigengenes.
+
+```{r}
+# Get Module Eigengenes per cluster
+DE_eigengenes <- moduleEigengenes(DE_genes_matrix, mergedColors_DE)$eigengenes
+
+# Reorder modules so similar modules are next to each other
+DE_eigengenes <- orderMEs(DE_eigengenes)
+
+# get order of modules without extra naming
+module_order = names(DE_eigengenes) %>% gsub("ME","", .)
+
+# Add treatment names
+DE_eigengenes$treatment = row.names(DE_eigengenes)
+
+# tidy & plot data
+tidy_DE_eigengenes <- DE_eigengenes %>%
+  pivot_longer(-treatment) %>%
+  mutate(
+    name = gsub("ME", "", name),
+    name = factor(name, levels = module_order)
+  )
+
+tidy_DE_eigengenes %>% 
+  ggplot(., aes(x=treatment, y=name, fill=value)) +
+  geom_tile() +
+  theme_bw() +
+  scale_fill_gradient2(
+    low = "blue",
+    high = "red",
+    mid = "white",
+    midpoint = 0,
+    limit = c(-1,1)) +
+  theme(axis.text.x = element_text(angle=90)) +
+  labs(title = "Module-trait Relationships", y = "Modules", fill="corr")
+```
+
+
+### Generate and Export Networks
+
+The network file can be generated for Cytoscape or as an edge/vertices file.
+
+```{r}
+genes_of_interest_DE = modules_DE_genes_df #%>%
+  #subset(colors %in% modules_of_interest)
+
+expr_of_interest_DE = normalized_counts_variable_genes#[genes_of_interest$gene_id,]
+
+
+# Only recalculate TOM for modules of interest (faster, altho there's some online discussion if this will be slightly off)
+TOM_DE = TOMsimilarityFromExpr(t(expr_of_interest_DE),
+                            power = picked_power)
+
+# Add gene names to row and columns
+row.names(TOM_DE) = row.names(expr_of_interest_DE)
+colnames(TOM_DE) = row.names(expr_of_interest_DE)
+
+edge_list_DE = data.frame(TOM_DE) %>%
+  mutate(
+    gene1 = row.names(.)
+  ) %>%
+  pivot_longer(-gene1) %>%
+  dplyr::rename(gene2 = name, correlation = value) %>%
+  unique() %>%
+  subset(!(gene1==gene2))
+
+head(edge_list_DE)
+```
+
+What does the distribution of correlations look like?
+```{r fig.height=5, fig.width=6}
+edge_list_DE %>%
+  ggplot(aes(x=correlation)) +
+  geom_histogram(bins=60) +
+  theme_bw()
+```
+
+
+Let's create the network based on these DE genes
+
+```{r fig.height=12, fig.width=12}
+# correlation cutoff
+corr_cutoff = 0.3
+
+# first, create adjacency matrix
+adjacency_DE = adjacency(DE_genes_matrix, power=picked_power, type="signed")
+
+# Calculate topological overlap matrix and dissimilarity from adjacency matrix
+TOM_DE = TOMsimilarity(adjacency_DE, TOMType="signed")
+
+# Add gene names to row and columns
+rownames(TOM_DE) = AnnotationDbi::select(org.Sc.sgd.db,keys=row.names(adjacency_DE),columns="GENENAME") %>% mutate(label = case_when(
+  is.na(GENENAME) ~ ORF,
+  TRUE ~ GENENAME)) %>% pull(label)
+
+
+colnames(TOM_DE) = AnnotationDbi::select(org.Sc.sgd.db,keys=row.names(adjacency_DE),columns="GENENAME") %>% mutate(label = case_when(
+  is.na(GENENAME) ~ ORF,
+  TRUE ~ GENENAME)) %>% pull(label)
+
+# assign TOM to new variable
+adj_DE <- TOM_DE
+
+# only show correlations greater than corr_cutoff
+adj_DE[adj_DE > corr_cutoff] = 1
+
+# set all correlations below that threshold to 0
+adj_DE[adj_DE != 1] = 0
+
+# graph adjacency network
+network_graph_data_DE <- graph.adjacency(adj_DE)
+
+# remove redundant self-loops in the network
+network_graph_data_DE <- simplify(network_graph_data_DE)
+
+# add colors for the network graph from constructed network modules
+V(network_graph_data_DE)$color <- DE_genes_network$colors
+
+
+# remove unconnected nodes
+network_graph_data_DE <- delete.vertices(network_graph_data_DE,
+                                      degree(network_graph_data_DE)==0)
+
+# set plotting margins
+par(mar=c(0.5,0.5,0.5,0.5))
+
+# generate plot
+plot(network_graph_data_DE, 
+     layout=layout.fruchterman.reingold(network_graph_data_DE, niter=1000),
+     vertex.size=3, edge.arrow.size=0.1, 
+     vertex.label.cex = 0.01,  # increase this value to see gene names
+     vertex.label.color= "black", rescale=TRUE, ylim=c(-1,1),xlim=c(-1,1),
+     main = "Network plot for differentially expressed genes")
+```
+
+### GO enrichments
+
+Let's do GO enrichments on these terms as well.
+```{r fig.height=18, fig.width=8}
+# create list of genes in each one
+DE_geneIDs_module_list <- normalized_counts_DE_genes %>%
+  data.frame() %>%
+    mutate(
+        gene_id = row.names(.)
+    ) %>%
+    pivot_longer(-gene_id) %>%
+    mutate(
+        module = DE_genes_network$colors[gene_id]
+    ) %>%
+  group_by(module) %>%
+  # only get genes that are DE
+  # filter(DE_direction != 0) %>%
+  group_split() %>% # split into many lists
+  purrr::set_names(purrr::map_chr(., ~.x$module[1])) %>% # assign names
+  # get just the ORF names
+  map(., ~ .x |> pull(all_of("gene_id"))) %>%
+  # remove duplicates
+  map(., ~ unique(.))
+  
+
+
+GO_enrich_DE_gene_modules <- clusterProfiler::compareCluster(
+                                  geneCluster   = DE_geneIDs_module_list, 
+                                  ont           = "BP",
+                                  OrgDb         = org.Sc.sgd.db,
+                                  pAdjustMethod = "BH",
+                                  pvalueCutoff  = 0.5, 
+                                  qvalueCutoff  = 0.5,
+                                  readable      = FALSE,
+                                  fun           = 'enrichGO',
+                                  keyType       = 'ORF'
+                                  )  |>
+  # let's add a 'richFactor' column that gives us the proportion of genes DE in the term
+  mutate(richFactor = Count / as.numeric(sub("/\\d+", "", BgRatio)))
+
+
+# get rid of sticks to save space
+GO_enrich_DE_gene_modules %>%
+  as.data.frame() %>% 
+  group_by(Cluster) %>%
+  slice_min(order_by=pvalue, n = 5) %>%
+  ggplot(.,
+           aes(Cluster, fct_reorder(Description, richFactor))) +
+      geom_point(aes(color = p.adjust, size = Count)) +
+      scale_color_gradientn(
+        colours = c("#f7ca64", "#46bac2", "#7e62a3"),
+        trans = "log10",
+        guide = guide_colorbar(reverse = TRUE, order = 1)
+      ) +
+      scale_size_continuous(range = c(2, 12)) +
+      scale_x_discrete(position = "top") +
+      scale_y_discrete(labels = function(x) str_wrap(x, width = 25)) +
+      xlab("Module") +
+      ylab(NULL) +
+      ggtitle("Enriched GO Categories by Module") +
+      # facet_wrap(~DE, scales = "free_y") +
+      theme_bw() +
+      theme(text = element_text(size=14),
+            axis.text.x = element_text(angle = 90,hjust=0) )
+```
+
+
+```{r fig.height=12, fig.width=8}
+# here are the data to add to cowplot:
+GO_summaries_DE_genes <- GO_enrich_DE_gene_modules %>%
+  as.data.frame() %>% 
+  group_by(Cluster) %>%
+  slice_min(order_by=p.adjust, n = 5) %>%
+  slice_head(n = 5) %>%
+  mutate(Description = case_when(
+    p.adjust < 0.05 ~ paste0(Description," (",Count,")"),
+    TRUE ~ " "
+  )) %>%
+  summarize(description = str_c(Description, collapse = "\n")) %>%
+  pull(description)
+
+
+# draw plot with GO terms
+cowplot::ggdraw(DE_genes_plot +
+                  theme(plot.margin = margin(t = 0.5, r = 5, b = 0.5, l = 0.1, unit = "cm"))) +
+  cowplot::draw_text(GO_summaries_DE_genes, 
+                     x = 0.76,  # Adjust this value for the desired horizontal position
+                     y = rev(seq(0.05, 0.82, length.out = length(GO_summaries_DE_genes))),  # Adjust this sequence for the desired vertical positions
+                     size = 6, 
+                     hjust = 0,  # Align GO terms to the left
+                     vjust = 0.5)
+```
+
+
+## Saving network for Cytoscape
+
+```{r}
+# choose where to save files
+dir_cytoscape_files <- path.expand("~/Desktop/Genomic_Data_Analysis/Analysis/Network/WGCNA")
+
+#create that directory if it doesn't exist
+if (!dir.exists(dir_cytoscape_files)) {dir.create(dir_cytoscape_files, recursive = TRUE)}
+
+# save files for loading into Cytoscape
+exportNetworkToCytoscape(
+  adjMat = adjacency_DE,
+  edgeFile = paste0(dir_cytoscape_files,"DE_gene_network_edges.tsv"),
+  nodeFile = paste0(dir_cytoscape_files,"DE_gene_network_nodes.tsv"),
+  threshold=0.3,
+  nodeAttr = modules_DE_genes_df$colors
+)
+```
+```
+
+## Questions
+
+Question 1: How would you explain the concept of a "module" in the context of WGCNA to someone unfamiliar with genomics?
+
+Question 2: Why is the choice of soft power important in WGCNA, and how might it impact the results?
+
+Question 3: How can the information obtained from WGCNA be integrated with other 'omics data for a more comprehensive biological interpretation?
+
+Question 4: What does module preservation in WGCNA mean, and how does the model generated with just differentially-expressed gens compare to the one where only veyr low variance genes were removed?
+
+Question 5: Do you think it's apporpriate for a scale-free network to filter genes based on whether they are differentially expressed?
+
+Be sure to knit this file into a pdf or html file once you're finished.
+
+System information for reproducibility:
+
+```{r sessionInfo-WGCNA}
+pander::pander(sessionInfo())
+```
