@@ -80,7 +80,7 @@ generated with the full size fastq files with Salmon.
 ```{r load-full_counts}
 path_salmon_counts = 'https://github.com/clstacy/GenomicAnalysis/raw/main/Data/Msn24_EtOH/counts/salmon.gene_counts.merged.nonsubsamp.tsv'
 
-counts <- read_tsv(path_salmon_counts,
+counts <- readr::read_tsv(path_salmon_counts,
                    col_names = TRUE) %>%
   # when we saved the tsv file, it converted the rownames to a column
   column_to_rownames("Name")
@@ -429,7 +429,7 @@ This code chunk just re-downloads that same file.
 ```{r load-data}
 path_salmon_counts = 'https://github.com/clstacy/GenomicAnalysis/raw/main/Data/Msn24_EtOH/counts/salmon.gene_counts.merged.nonsubsamp.tsv'
 
-counts <- read_tsv(path_salmon_counts,
+counts <- readr::read_tsv(path_salmon_counts,
                    col_names = TRUE) %>%
   column_to_rownames("Name")
 ```
