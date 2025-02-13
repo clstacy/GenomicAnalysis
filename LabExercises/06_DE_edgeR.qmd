@@ -360,7 +360,7 @@ topTags(res, n=Inf) %>% data.frame() %>%
 ```
 
 ```{r summarize-DEgenes}
-is.de <- decideTestsDGE(res, 
+is.de <- decideTests(res, 
                         adjust.method="fdr",
                         p.value=0.05,
                         lfc = 0) # this allows you to set a cutoff, BUT...
@@ -499,7 +499,7 @@ topTags(tr, n=Inf) %>%
   write_tsv(., file = paste0(dir_output_edgeR, "yeast_lfc1topTags_edgeR.tsv"))
 
 # summarize the DE genes
-is.de_tr <- decideTestsDGE(tr, p.value=0.05)
+is.de_tr <- decideTests(tr, p.value=0.05)
 summary(is.de_tr)
 
 # visualize results
