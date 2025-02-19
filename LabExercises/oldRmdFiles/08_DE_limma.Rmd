@@ -466,8 +466,7 @@ limma::plotMA(lfc1_res, status=is.de.lfc1)
 # Comparing DE analysis softwares
 
 We have went through some example DE workflows with edgeR, DESeq2, and
-limma-voom. Since we have saved our outputs for each analysis, we can
-compare their outcomes now.
+limma-voom. Since we have saved our outputs for each analysis, we can compare their outcomes now.
 
 ```{r load-DEworkflows}
 # load in all of the DE results for the difference of difference contrast

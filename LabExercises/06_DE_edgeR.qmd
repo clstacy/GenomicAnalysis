@@ -236,9 +236,9 @@ against the average log-expression across those libraries (the mean).
 The below command plots an MD plot, comparing sample 1 against an
 artificial library constructed from the average of all other samples.
 
-## MDS plots
+## MD plots
 
-```{r plotMDS, fig.show="hold", out.width="25%"}
+```{r plotMD, fig.show="hold", out.width="25%"}
 for (sample in 1:nrow(y$samples)) {
   plotMD(cpm(y, log=TRUE), column=sample)
   abline(h=0, col="red", lty=2, lwd=2)
