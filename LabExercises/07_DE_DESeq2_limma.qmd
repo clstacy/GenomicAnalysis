@@ -209,7 +209,7 @@ resultsNames(dds)
 
 ## Extracting and Viewing Results
 
-Extract the results for the interaction between genotype and pr-treatment, and then build a table that includes gene annotations. 
+Extract the results for the interaction between genotype and pre-treatment, and then build a table that includes gene annotations. 
 ```{r}
 res_deseq2 <- results(dds, name = "Genotypemsn24dd.ConditionEtOH")
 res_deseq2
@@ -396,30 +396,6 @@ saveRDS(object = res_specific, file = paste0(dir_output_limma, "yeast_res_limma.
 saveRDS(object = y, file = paste0(dir_output_limma, "yeast_y_limma.Rds"))
 ```
 
-## Testing Against a LogFC Cutoff with treat()
-We can further test differential expression using a log-fold-change cutoff. Here we apply a cutoff of 1.
-
-```{r}
-lfc1_res <- treat(res_specific, lfc = 1, robust = TRUE)
-lfc1_top_table <- topTreat(lfc1_res, n = Inf, p.value = 0.05)
-lfc1_top_table
-
-lfc1_top_table %>%
-  as_tibble() %>%
-  arrange(desc(adj.P.Val)) %>%
-  mutate(adj.P.Val = round(adj.P.Val, 2)) %>%
-  mutate(across(where(is.numeric), \(x) signif(x, 3))) %>%
-  write_tsv(file = paste0(dir_output_limma, "yeast_lfc1_topTreat_limma.tsv"))
-
-saveRDS(object = lfc1_res, file = paste0(dir_output_limma, "yeast_lfc1_res_limma.Rds"))
-```
-Visualize the treat results:
-```{r}
-is.de.lfc1 <- decideTests(lfc1_res, p.value = 0.05)
-summary(is.de.lfc1)
-limma::plotMA(lfc1_res, status = is.de.lfc1)
-```
-
 
 # Comparison of DE Methods
 
@@ -592,7 +568,8 @@ combined_sig_scatter_plot = full_join(topTags_DESeq2, topTags_limma,
     TRUE ~ "grey"  # if none of these are met
   ), levels = c("purple", "aquamarine3", "brown", "blue", "orange", "green", "red", "black", "grey"), labels = c("Sig in All", "Sig in DESeq2 & limma", "Sig in DESeq2 & edgeR", "Sig in DESeq2", "Sig in limma & edgeR", "Sig in limma", "Sig in edgeR", "Not Sig", "NA encountered"))) %>%
   rename("logFC.DESeq2" = log2FoldChange) %>%
-  ggplot(aes(x=logFC.DESeq2, y=logFC.limma, color = significance, size=AveExpr)) +
+  ggplot(aes(x=logFC.DESeq2, y=logFC.limma, 
+             color = significance, size=AveExpr)) +
     geom_abline(slope = 1) + 
   geom_point() + 
   theme_classic()
@@ -605,7 +582,7 @@ all_results <- full_join(topTags_DESeq2, topTags_limma, by = join_by(ORF, SGD, G
     DESeq2_sig = ifelse(padj < sig_cutoff, "blue", "black"),
     limma_sig  = ifelse(adj.P.Val < sig_cutoff, "green", "black"),
     edgeR_sig  = ifelse(FDR < sig_cutoff, "red", "black"),
-    sig = factor(case_when(
+    significance = factor(case_when(
       DESeq2_sig == "blue" & limma_sig == "green" & edgeR_sig == "red"  ~ "purple",
       DESeq2_sig == "blue" & limma_sig == "green" & edgeR_sig != "red" ~ "aquamarine3",
       DESeq2_sig == "blue" & limma_sig != "green" & edgeR_sig == "red"  ~ "brown",
@@ -625,14 +602,14 @@ all_results <- full_join(topTags_DESeq2, topTags_limma, by = join_by(ORF, SGD, G
 # Select the logFC columns from each method along with the significance flag.
 # Note: DESeq2 log fold changes are in "log2FoldChange", limma in "logFC.limma", and edgeR in "logFC.edgeR".
 df_plot <- all_results %>%
-  dplyr::select(log2FoldChange, logFC.limma, logFC.edgeR, sig) %>% rename("logFC.DESeq2" = log2FoldChange)
+  dplyr::select(log2FoldChange, logFC.limma, logFC.edgeR, significance) %>% rename("logFC.DESeq2" = log2FoldChange)
 
 # Create a correlation plot grid using ggpairs:
 corr_plot = ggpairs(
   df_plot,  # filter out genes that are not significant in any method
   columns = 1:3,  # columns with the logFC values
  # mapping = aes(color = sig, group=NA),
-  lower = list(mapping = aes(color=df_plot$sig), continuous = wrap("points", alpha = 0.5, size = 1.5)),
+  lower = list(mapping = aes(color=df_plot$significance), continuous = wrap("points", alpha = 0.5, size = 1.5)),
   diag = list(continuous = wrap("densityDiag", alpha = 0.5)),
   upper = list(continuous = wrap("cor", size = 4))
 ) + 
@@ -650,6 +627,11 @@ combined_sig_scatter_plot
 1. How many genes were upregulated and downregulated in the contrast examined using DESeq2?
 Specify the cutoffs used (e.g., adjusted p-value < 0.01 and absolute log2 fold-change > 1).
 
+```{r}
+
+```
+
+
 ### limma Analysis:
 
 2. What are the pros and cons of applying a logFC cutoff (e.g., logFC > 1) when performing differential expression analysis with limma?
@@ -659,11 +641,61 @@ Specify the cutoffs used (e.g., adjusted p-value < 0.01 and absolute log2 fold-c
 
 3. Compare the DESeq2 and limma results. What similarities and differences do you observe regarding the number of significant genes and the log fold-change estimates?
 
+```{r, eval=FALSE}
+View(topTags_DESeq2)
+View(topTags_limma)
+
+# use the plots from the assignment to help answer this question.
+```
+
+
+4. Perform GO enrichments on genes that were called significant in DESeq2 vs genes that were significant for both DESeq2 and limma. Based on the results, which method do you prefer?
+
+```{r}
+# Template code for this question:
+## how to get genes that are significant in DESeq2 results
+DE_in_DESeq2 <- c(down_DESeq2_DEG, up_DESeq2_DEG)
+
+## how to get genes that are significant in both DESeq2 and limma
+DE_in_DESeq2_and_limma <- 
+  intersect(down_DESeq2_DEG, down_limma_DEG) |>
+  union(intersect(up_DESeq2_DEG, up_limma_DEG))
+
+library(clusterProfiler)
+## how to perform GO enrichment analysis
+GO_DE_in_DESeq2 = enrichGO(
+  gene = DE_in_DESeq2,
+  OrgDb = "org.Sc.sgd.db",
+  universe = rownames(counts),
+  keyType = "ORF",
+  ont= "BP",
+  pvalueCutoff = 0.05
+) |> mutate(richFactor = Count / as.numeric(sub("/\\d+", "", BgRatio))) |>
+  data.frame()
+
+GO_DE_in_DESeq2_and_limma = enrichGO(
+  gene = DE_in_DESeq2_and_limma,
+  OrgDb = "org.Sc.sgd.db",
+  universe = rownames(counts),
+  keyType = "ORF",
+  ont= "BP",
+  pvalueCutoff = 0.05
+) |> mutate(richFactor = Count / as.numeric(sub("/\\d+", "", BgRatio))) |>
+  data.frame()
+
+# View results
+GO_DE_in_DESeq2 |> head()
+GO_DE_in_DESeq2_and_limma |> head()
+```
+
 
 ### Biological Interpretation:
 
 4. Choose one contrast (or a contrast not explicitly tested during the activity) and provide a brief biological interpretation of its results.
 
+```{r}
+
+```
 
 Be sure to knit this file into a pdf or html file once you're finished.
 
