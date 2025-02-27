@@ -16,7 +16,7 @@ last updated: `r Sys.Date()`
 
 # Introduction
 
-In this activity, we will see how to do visualize results of differential expression analysis on the same yeast RNA-seq data.
+In this activity, we will see how to visualize results of differential expression analysis on the same yeast RNA-seq data.
 
 At the end of this exercise, you should be able to:
 
@@ -37,8 +37,9 @@ pak(c("tidyverse", "knitr", "readr", "pander",
   )
 
 # We also need these packages today.
-pak("DESeq2", "edgeR", "AnnotationDbi", "org.Sc.sgd.db",
+pak(c("DESeq2", "edgeR", "AnnotationDbi", "org.Sc.sgd.db",
        "ggrepel", "Glimma", "ggVennDiagram", "ggplot2")
+   )
 ```
 
 ```{r}
@@ -60,16 +61,16 @@ library(ggVennDiagram)
 We load in the results of the differential expression analysis from the edgeR, DESeq2, and limma packages that we created in previous classes. We will use these results to create visualizations.
 
 ```{r compare-DEworkflows}
-# load in all of the DE results for the difference of difference contrast
-path_output_edgeR <- "~/Desktop/Genomic_Data_Analysis/Analysis/edgeR/yeast_topTags_edgeR.tsv"
-path_output_DESeq2 <- "~/Desktop/Genomic_Data_Analysis/Analysis/DESeq2/yeast_res_DESeq2.tsv"
-path_output_limma <- "~/Desktop/Genomic_Data_Analysis/Analysis/limma/yeast_topTags_limma.tsv"
+## Load in the results of the differential expression analysis from edgeR, DESeq2, and limma
+path_output_edgeR <- "https://github.com/clstacy/GenomicAnalysis/raw/main/Data/Msn24_EtOH/DE_genes/edgeR/yeast_topTags_edgeR.tsv"
+path_output_DESeq2 <- "https://github.com/clstacy/GenomicAnalysis/raw/main/Data/Msn24_EtOH/DE_genes/DESeq2/yeast_res_DESeq2.tsv"
+path_output_limma <- "https://github.com/clstacy/GenomicAnalysis/raw/main/Data/Msn24_EtOH/DE_genes/limma/yeast_topTags_limma.tsv"
 
-## if you don't have these files, we generated them in previous lessons.
-## you can remove the "#" from the lines of code below to grab them from the internet.
-# path_output_edgeR <- "https://github.com/clstacy/GenomicAnalysis/raw/main/Data/Msn24_EtOH/DE_genes/edgeR/yeast_topTags_edgeR.tsv"
-# path_output_DESeq2 <- "https://github.com/clstacy/GenomicAnalysis/raw/main/Data/Msn24_EtOH/DE_genes/DESeq2/yeast_res_DESeq2.tsv"
-# path_output_limma <- "https://github.com/clstacy/GenomicAnalysis/raw/main/Data/Msn24_EtOH/DE_genes/limma/yeast_topTags_limma.tsv"
+## These files were generated in our previous exercises
+## you can remove the "#" from the lines of code below to load the files from your computer.
+# path_output_edgeR <- "~/Desktop/Genomic_Data_Analysis/Analysis/edgeR/yeast_topTags_edgeR.tsv"
+# path_output_DESeq2 <- "~/Desktop/Genomic_Data_Analysis/Analysis/DESeq2/yeast_res_DESeq2.tsv"
+# path_output_limma <- "~/Desktop/Genomic_Data_Analysis/Analysis/limma/yeast_topTags_limma.tsv"
 
 topTags_edgeR <- readr::read_tsv(path_output_edgeR)
 topTags_DESeq2 <- readr::read_tsv(path_output_DESeq2)
@@ -103,7 +104,7 @@ topTags_edgeR %>%
                              .default = NA)) %>%
   ggplot(aes(x=logCPM, y=logFC, color = `Significant FDR`, label = delabel)) + 
     geom_point(size=1) + 
-    scale_y_continuous(limits=c(-5, 5), oob=squish) + 
+    scale_y_continuous(limits=c(-5, 5), oob=scales::squish) + 
     geom_hline(yintercept = 0, colour="darkgrey", linewidth=1, linetype="longdash") +
     labs(x="mean of normalized counts", y="log fold change") +
     # ggrepel::geom_text_repel(size = 1.5) +
@@ -122,7 +123,7 @@ topTags_DESeq2 %>%
   ) %>% 
   ggplot(aes(log(baseMean), log2FoldChange, color = `Significant FDR`, label = delabel)) +
     geom_point(size=1) + 
-    scale_y_continuous(limits=c(-5, 5), oob=squish) + 
+    scale_y_continuous(limits=c(-5, 5), oob=scales::squish) + 
     geom_hline(yintercept = 0, colour="darkgrey", linewidth=1, linetype="longdash") +
     labs(x="mean of normalized counts", y="log fold change") +
     # ggrepel::geom_text_repel(size = 1.5) +
@@ -141,7 +142,7 @@ topTags_limma %>%
   ) %>% 
   ggplot(aes(AveExpr, logFC, color = `Significant FDR`, label = delabel)) + 
     geom_point(size=1) + 
-    scale_y_continuous(limits=c(-5, 5), oob=squish) + 
+    scale_y_continuous(limits=c(-5, 5), oob=scales::squish) + 
     geom_hline(yintercept = 0, colour="darkgrey", linewidth=1, linetype="longdash") +
     labs(x="mean of normalized counts", y="log fold change") + 
     # ggrepel::geom_text_repel(size = 1.5) +
@@ -231,22 +232,23 @@ res_edgeR <- readr::read_rds("https://github.com/clstacy/GenomicAnalysis/raw/mai
 
 
 # load in the DGE lists for each
-y_limma <- read_rds("https://github.com/clstacy/GenomicAnalysis/raw/main/Data/Msn24_EtOH/DE_genes/limma/yeast_y_limma.Rds")
-y_edgeR <- read_rds("https://github.com/clstacy/GenomicAnalysis/raw/main/Data/Msn24_EtOH/DE_genes/edgeR/yeast_y_edgeR.Rds")
+y_limma <- readr::read_rds("https://github.com/clstacy/GenomicAnalysis/raw/main/Data/Msn24_EtOH/DE_genes/limma/yeast_y_limma.Rds")
+y_edgeR <- readr::read_rds("https://github.com/clstacy/GenomicAnalysis/raw/main/Data/Msn24_EtOH/DE_genes/edgeR/yeast_y_edgeR.Rds")
 
 ## again, alternative code to load local files
 # y_limma <- readRDS("~/Desktop/Genomic_Data_Analysis/Analysis/limma/yeast_y_limma.Rds")
 # y_edgeR <- readRDS("~/Desktop/Genomic_Data_Analysis/Analysis/edgeR/yeast_y_edgeR.Rds")
 
 
-glimmaMA(res_limma, dge = y_limma)
+glimmaMA(res_limma, dge = y_limma, counts = 2^y_limma$E, group = y_limma$targets$group)
 glimmaMA(res_edgeR, dge = y_edgeR)
 ```
 
 ## Volcano Plots
 
 ```{r}
-glimmaVolcano(res_limma, dge = y_limma)
+glimmaVolcano(res_limma, dge = y_limma, 
+              counts = 2^y_limma$E, group = y_limma$targets$group)
 glimmaVolcano(res_edgeR, dge = y_edgeR)
 ```
 
