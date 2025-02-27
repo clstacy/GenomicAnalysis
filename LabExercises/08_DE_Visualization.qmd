@@ -88,7 +88,7 @@ MA plots display a log ratio (M) vs an average (A) in order to visualize the dif
 ```{r plot-MA}
 #| label: plot-MA
 #| fig-show: hold
-#| out-width: 33.3%
+#| layout-ncol: 3
 #| fig.cap: "MA plots for edgeR, DESeq2, and limma"
 
 # assign pvalue and logFC cutoffs for coloring DE genes
@@ -156,7 +156,7 @@ topTags_limma %>%
 ```{r}
 #| label: plot-volcano
 #| fig-show: hold
-#| out-width: 33.3%
+#| layout-ncol: 3
 #| fig-width: 6
 #| fig-height: 4
 
@@ -241,7 +241,7 @@ y_edgeR <- readr::read_rds("https://github.com/clstacy/GenomicAnalysis/raw/main/
 
 
 glimmaMA(res_limma, dge = y_limma, counts = 2^y_limma$E, group = y_limma$targets$group)
-glimmaMA(res_edgeR, dge = y_edgeR)
+glimmaMA(res_edgeR, dge = y_edgeR, main = NA)
 ```
 
 ## Volcano Plots
@@ -249,7 +249,7 @@ glimmaMA(res_edgeR, dge = y_edgeR)
 ```{r}
 glimmaVolcano(res_limma, dge = y_limma, 
               counts = 2^y_limma$E, group = y_limma$targets$group)
-glimmaVolcano(res_edgeR, dge = y_edgeR)
+glimmaVolcano(res_edgeR, dge = y_edgeR, main = NA)
 ```
 
 # Generating bar graph summaries
@@ -309,8 +309,8 @@ decideTests_all_edgeR %>%
 If we want to show the same amount of information, in a more informative way, a Venn diagram is often a better alternative. Here's an easy way to get that visualization if you use either edgeR or limma for your analysis.
 
 ```{r venn-allContrasts}
-#| fig-height=8 
-#| fig-width=10
+#| fig-height: 8 
+#| fig-width: 10
 
 # same as before, we can make the plot from the decideTests output
 res_all_limma %>%
@@ -336,9 +336,9 @@ Venn diagrams are useful for showing gene counts as well as the overlaps between
 
 1.  Modify the code below to find out how many genes are upregulated (p.value \< 0.01 and \|lfc\| \> 1) in the ethanol stress response of both WT cells and msn2/4 mutants.
 
-```{r create-your-own-Venn, fig.height=4, fig.width=12}
-#| fig.height=4
-#| fig.width=12
+```{r create-your-own-Venn}
+#| fig-height: 4
+#| fig-width: 12
 
 # here are all of the contrasts
 colnames(res_all_limma)
