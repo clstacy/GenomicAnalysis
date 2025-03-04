@@ -202,10 +202,11 @@ topTags_limma %>%
       adj.P.Val < sig_cutoff & abs(logFC) > FC_label_cutoff ~ ORF,
       .default = NA)
   ) %>% 
-  ggplot(aes(x=logFC, y=-log10(P.Value), color = `Significant FDR`, label = delabel)) + 
+  mutate(adj.P.Val = p.adjust(P.Value, method = "BH")) %>%
+  ggplot(aes(x=logFC, y=-log10(adj.P.Val), color = `Significant FDR`, label = delabel)) + 
   geom_point(size = 1) +
   ggrepel::geom_text_repel(size = 1.5) +
-  labs(x = "log fold change", y = "-log10(UNADJUSTED p-value)") +
+  labs(x = "log fold change", y = "-log10(adjusted p-value)") +
   theme_bw() +
   guides(color="none") +
   scale_color_manual(values = c("black", "red")) +

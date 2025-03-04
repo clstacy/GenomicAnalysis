@@ -1,0 +1,34 @@
+---
+title: "Glimma Example"
+author: Carson Stacy
+date: "`r Sys.Date()`"
+format:
+  html:
+    embed-resources: true
+    code-fold: true
+    page-layout: full
+editor: visual
+execute:
+  freeze: auto
+  echo: true
+---
+
+# Using Glimma to Interactively Display Differential Expression
+
+```{r}
+#| warning: false
+
+if (!require("Glimma")) install.packages("Glimma"); library(Glimma)
+
+#### Load edgeR output files. ###
+# paths to files (pulled from github)
+## Res object
+res_edgeR <- readr::read_rds("https://github.com/clstacy/GenomicAnalysis/raw/main/Data/Msn24_EtOH/DE_genes/edgeR/yeast_res_edgeR.Rds")
+## DGE list object
+y_edgeR <- readr::read_rds("https://github.com/clstacy/GenomicAnalysis/raw/main/Data/Msn24_EtOH/DE_genes/edgeR/yeast_y_edgeR.Rds")
+
+glimmaVolcano(res_edgeR, dge = y_edgeR, main = NA,
+            width=1380, 
+            height = 1840
+              )
+```
