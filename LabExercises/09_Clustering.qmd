@@ -87,8 +87,10 @@ if (!require("NbClust")) install.packages("NbClust"); library(NbClust)
 # PCL_file <- read_delim("/Users/jeffreylewis/Desktop/Genomic_Analysis_Course/Data/DE_yeast_TF_stress_PLC.pcl", 
 #     delim = "\t", escape_double = FALSE, 
 #     trim_ws = TRUE)
-PCL_file <- readr::read_tsv("https://github.com/clstacy/GenomicAnalysis/raw/main/Data/Msn24_EtOH/clustering/DE_yeast_TF_stress_PCL.pcl",
-                            trim_ws = TRUE)
+
+## Alternate code to load the file from the internet
+# PCL_file <- readr::read_tsv("https://github.com/clstacy/GenomicAnalysis/raw/main/Data/Msn24_EtOH/clustering/DE_yeast_TF_stress_PCL.pcl",
+#                             trim_ws = TRUE)
 
 
 # removing the 3 columns and 1 row that do not contain logFC data
@@ -105,13 +107,13 @@ fviz_nbclust(PCL_nbclust, kmeans, method = "silhouette")+
   labs(subtitle = "Silhouette method")
 
 # Gap statistic
-# nboot = 50 to keep the function speedy.
+# nboot = 10 to keep the function speedy.
 # recommended value: nboot= 500 for your analysis.
 # Use verbose = FALSE to hide computing progression.
 set.seed(123)
 
 fviz_nbclust(PCL_nbclust, kmeans, nstart = 25,  
-             method = "gap_stat", nboot = 50) +
+             method = "gap_stat", nboot = 10) +
   labs(subtitle = "Gap statistic method")
 ```
 
@@ -165,6 +167,6 @@ Now it's your turn to play around with data. Download the `Gasch_2000_stress.pcl
 
 4.  Make two new PCL files separating the ethanol responses and salt responses, and cluster the data separately. This time cluster on arrays as well as genes. Try different filters and clustering methods until you find one that you feel captures the data, and note your clustering parameters.
 
-    Based on your clustering, which transcription factor looks to be most responsible for the regulating the ethanol response? Which transcription factors seems most responsibel for the salt response? Looking back at the FDR corrected p-values for each TF's response (WT v mutant comparisons), does this match your expectations from the clustering. Why might clustering and differential expression analysis yield different answers to the question of which TF is most important for a response?
+    Based on your clustering, which transcription factor looks to be most responsible for the regulating the ethanol response? Which transcription factors seems most responsible for the salt response? Looking back at the FDR corrected p-values for each TF's response (WT v mutant comparisons), does this match your expectations from the clustering. Why might clustering and differential expression analysis yield different answers to the question of which TF is most important for a response?
 
 5.  Using the clustering that you settled on for question #4, identify the single main cluster for each that contains genes affected by the muations in *msn2/4*. Make a figure highlighting those clusters by exporting the thumbnail images and importing into PowerPoint (or another graphics program if you prefer) and drawing a line next to the clusters (e.g., Figure 4 [from this paper](https://pubmed.ncbi.nlm.nih.gov/32027144/)). Use the [Princeton GO term Finder](https://go.princeton.edu/cgi-bin/GOTermFinder) to identify BP enrichments for those clusters, and annotate the top 5 terms to the figure. Save as a PDF to embed into your homework document.
