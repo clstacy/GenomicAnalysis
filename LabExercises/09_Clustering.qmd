@@ -33,7 +33,7 @@ There are lots of software packages that will perform clustering analysis. One o
 
 ## Generating a PCL file
 
-Cluster reads in tab-delimited text files with a minimum of 1 column with the gene IDs, columns of your expression values (generally logFC, but can be TPMs), and then a row with column names. I also include an extra column with gene annotations and gene weight (GWEIGHT, all set to 1 to start) and experiment weight (EWEIGHT, also set to 1 for all). More on what weights are to follow. To open a PCL file, select from the Cluster drop-down menu "File" -> "Open Data."
+Cluster reads in tab-delimited text files with a minimum of 1 column with the gene IDs, columns of your expression values (generally logFC, but can be TPMs), and then a row with column names. I also include an extra column with gene annotations and gene weight (GWEIGHT, all set to 1 to start) and experiment weight (EWEIGHT, also set to 1 for all). More on what weights are to follow. To open a PCL file, select from the Cluster drop-down menu "File" -\> "Open Data."
 
 ![](https://github.com/clstacy/GenomicAnalysis/raw/main/Figures/PCL_File.png){width="750"}
 
@@ -41,13 +41,13 @@ Cluster reads in tab-delimited text files with a minimum of 1 column with the ge
 
 Cluster allows filtering on:
 
--   **% Present >= X.** Genes with missing values above that cutoff are removed from the analysis.
+-   **% Present \>= X.** Genes with missing values above that cutoff are removed from the analysis.
 
--   **SD (Gene Vector) >= X.** Genes with standard deviations above that cutoff are removed from the analysis.
+-   **SD (Gene Vector) \>= X.** Genes with standard deviations above that cutoff are removed from the analysis.
 
--   **At least X Observations with abs(Val) >= Y.** Genes with fewer than the selected number of observations above a cutoff are removed from the analysis. E.g., At least 1 observation with a logFC of +/- 1.
+-   **At least X Observations with abs(Val) \>= Y.** Genes with fewer than the selected number of observations above a cutoff are removed from the analysis. E.g., At least 1 observation with a logFC of +/- 1.
 
--   **MaxVal-MinVal >= X.** Genes whose maximum minus minimum values are less than the cutoff are removed.
+-   **MaxVal-MinVal \>= X.** Genes whose maximum minus minimum values are less than the cutoff are removed.
 
 I generally filter on 80% or 100% present, and will often only include significantly differentially expressed genes in my PCL file (instead of applying a specific filter).
 
@@ -87,7 +87,7 @@ if (!require("NbClust")) install.packages("NbClust"); library(NbClust)
 # PCL_file <- read_delim("/Users/jeffreylewis/Desktop/Genomic_Analysis_Course/Data/DE_yeast_TF_stress_PLC.pcl", 
 #     delim = "\t", escape_double = FALSE, 
 #     trim_ws = TRUE)
-PCL_file <- readr::read_tsv("https://github.com/clstacy/GenomicAnalysis/raw/main/Data/Msn24_EtOH/clustering/DE_yeast_TF_stress.txt.gz",
+PCL_file <- readr::read_tsv("https://github.com/clstacy/GenomicAnalysis/raw/main/Data/Msn24_EtOH/clustering/DE_yeast_TF_stress_PCL.pcl",
                             trim_ws = TRUE)
 
 
@@ -111,7 +111,7 @@ fviz_nbclust(PCL_nbclust, kmeans, method = "silhouette")+
 set.seed(123)
 
 fviz_nbclust(PCL_nbclust, kmeans, nstart = 25,  
-             method = "gap_stat", nboot = 3) +
+             method = "gap_stat", nboot = 50) +
   labs(subtitle = "Gap statistic method")
 ```
 
@@ -143,7 +143,7 @@ The resulting list can then be either copy and pasted into Excel or saved direct
 
 Now it's your turn to play around with data. Download the `Gasch_2000_stress.pcl` file from OneDrive (`Data Files -> Msn24_EtOH -> Clustering`) and visualize clustering outputs using different methods:
 
-1)  Compare with and without filtering on 80% present, and compare with and without filtering on having a certain number of values above an logFC of |1|.
+1)  Compare with and without filtering on 80% present, and compare with and without filtering on having a certain number of values above an logFC of \|1\|.
 
 2)  Compare different similarity metrics. The ones most commonly used are (Pearson) correlation (centered or uncentered) and Euclidean difference, but see what clustering with other metrics looks like.
 

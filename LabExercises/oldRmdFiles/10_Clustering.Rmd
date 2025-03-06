@@ -84,7 +84,8 @@ library(readr)
 library(factoextra)
 library(NbClust)
 
-# Import From Text (readr) to load the pcl file. Change code below to PCL_file <- read_delim(PATH TO YOUR FILE)
+# Import From Text (readr) to load the pcl file. 
+## Change code below to PCL_file <- read_delim(PATH TO YOUR FILE) ##
 PCL_file <- read_delim("/Users/jeffreylewis/Desktop/Genomic_Analysis_Course/Data/DE_yeast_TF_stress_PLC.pcl", 
     delim = "\t", escape_double = FALSE, 
     trim_ws = TRUE)
