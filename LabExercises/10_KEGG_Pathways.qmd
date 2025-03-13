@@ -249,15 +249,15 @@ Using the `res_all` object instead, we can compare logFC across contrasts. We ca
 plotParalogs(
   kegg_results, res,
   pathway_code = "sce00500",
-  keytype = "ORF", juke = 17
+  keytype = "ORF", juke = 18
 )
 ```
 
 Comparing stress response between WT and mutant for Glycolysis/Gluconeogenesis Pathway
 
 ```{r}
-#| fig-width: 9
-#| fig-height: 9
+#| fig-width: 5
+#| fig-height: 5
 plotParalogs(kegg_results, res_all, 
              fc_column = "logFC.EtOHvsMOCK.WT",
              pathway_code = "sce00010", keytype = "ORF", 
