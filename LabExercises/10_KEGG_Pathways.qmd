@@ -39,13 +39,8 @@ pak(c(
   "dplyr", "stringr", "purrr", "edgeR", 
   "AnnotationDbi", "org.Sc.sgd.db", "clusterProfiler",
   "BiocFileCache", # for saving downloaded data files
-  "pathview", 
   "ggupset",
-  "KEGGgraph",
-  "patchwork",
-  "igraph",
-  "tidygraph",
-  "ggfx")
+  "pathview")
 )
 
 # a package from github to install (using pak library to install)
@@ -194,7 +189,7 @@ Of course, you might want more control over the process. In that case, we can us
 # the WT stress response.
 DE_genes <- res %>% 
   data.frame() %>%
-  filter(PValue < 0.01 & abs(logFC)>0.05
+  filter(PValue < 0.01 & abs(logFC)>0.5
          ) %>%
   pull(ORF)
 ```
