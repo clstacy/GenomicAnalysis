@@ -49,18 +49,8 @@ pak(c(
 )
 
 # a package from github to install (using pak library to install)
-pak::pak("noriakis/ggkegg")
-devtools::install_github("clstacy/Paralogs")
-# pak::pak("clstacy/Paralogs")
+pak::pak("clstacy/Paralogs")
 
-example_plot <- plotParalogs(
-  example_enrich_results,
-  lrt_yeast,
-  pathway_code = "sce04138",
-  keytype = "ORF",
-  juke = 18,
-  title = "Example Title for this Plot"
-)
 
 options(digits = 3)
 set.seed(123)
@@ -87,19 +77,17 @@ res <- readr::read_rds(file = paste0(dir_output_edgeR, "yeast_res_edgeR.Rds"))
 # comment out the above line of code if it gives an error.
 if (!exists("res", envir = .GlobalEnv)) {
   # If variable doesn't exist, load from
-  url <- "https://github.com/clstacy/GenomicDataAnalysis_Fa23/raw/main/data/yeast_res_all_edgeR.Rds"
+  url <- "https://github.com/clstacy/GenomicAnalysis/raw/main/Data/Msn24_EtOH/DE_genes/edgeR/yeast_res_edgeR.Rds"
   res <- read_rds(url)
   # assign("res", data, envir = .GlobalEnv)
   cat(paste("Loaded res from", url, "\n"))
   rm("url", envir = .GlobalEnv)
 } else {
-  url <- "https://github.com/clstacy/GenomicDataAnalysis_Fa23/raw/main/data/yeast_res_all_edgeR.Rds"
-  cat(paste("res object is already loaded. Skipping loading from", url, "\n"))
-  rm("url", envir = .GlobalEnv)
+  cat("res object is already loaded. Skipping loading from GitHub \n")
 }
 
-# let's also get the res object for all of the contrasts at once, (from GitHub)
-res_all <- readr::read_rds("https://github.com/clstacy/GenomicDataAnalysis_Fa23/raw/main/data/yeast_res_all_edgeR.Rds")
+# let's also get the res object for all of the contrasts at once (from GitHub)
+res_all <- readr::read_rds("https://github.com/clstacy/GenomicAnalysis/raw/main/Data/DE_genes/edgeR/yeast_res_all_edgeR.Rds"
 ```
 
 # KEGG Analysis
@@ -271,7 +259,6 @@ Comparing stress response between WT and mutant for Glycolysis/Gluconeogenesis P
 ```{r}
 #| fig-width: 9
 #| fig-height: 9
-
 plotParalogs(kegg_results, res_all, 
              fc_column = "logFC.EtOHvsMOCK.WT",
              pathway_code = "sce00010", keytype = "ORF", 
@@ -288,138 +275,13 @@ plotParalogs( kegg_results, res_all,
               juke = 19, title = "logFC.EtOHvsWT.MSN24ddvsWT")
 ```
 
-```{r graphing-paralogs, warning=FALSE}
-# choose the pathway we want to visualize:
-library(ggkegg)
-
-pathway_to_graph <- "sce00010" # glycolysis/gluconeogenesis
-# pathway_to_graph <- "sce00020" # TCA cycle
-# pathway_to_graph <- "sce04213" # longevity
-# pathway_to_graph <- "sce00500" # starch & sucrose metabolism
-# pathway_to_graph <- "sce00620" # pyruvate metabolism
-
-# get the ID for the pathway we want to see
-pathway_number <- kegg_results %>%
-  data.frame() %>%
-  mutate(row_number = row_number()) %>%
-  filter(ID == pathway_to_graph) %>%
-  pull(row_number)
-
-
-# this saves the kegg list reaction mappings to KEGG_reactions for plotting
-# where these came from: "https://rest.kegg.jp/list/reaction/"
-if (!exists("KEGG_reactions")) {
-  # save the kegglist reaction infromation
-  KEGG_reactions <- KEGGREST::keggList("reaction") %>%
-    as.data.frame() 
-  colnames(KEGG_reactions) <- "long_reaction_description"
-  KEGG_reactions <- KEGG_reactions %>%
-    tibble::rownames_to_column("reaction") %>%
-    dplyr::mutate(reaction_description = str_split_i(
-      long_reaction_description, ";", 1)
-      ) %>%
-    dplyr::select(reaction, reaction_description) %>%
-    dplyr::mutate(reaction = paste0('rn:', reaction))
-}
-
-# save the kegg_data as a ggkegg object
-KEGG_data <- kegg_results %>%
-  ggkegg(
-    convert_first = FALSE,
-    convert_collapse = "\n",
-    pathway_number = pathway_number, # changing this to change the pathway.
-    convert_org = c("sce"),
-    delete_zero_degree = TRUE,
-    return_igraph = FALSE
-  )
-
-# process thsi data to visualize
-graph.data <- KEGG_data$data %>%
-  filter(type == "gene") %>%
-  mutate(showname = strsplit(name, " ") %>% str_remove_all("sce:")) %>%
-  mutate(showname = gsub('c\\(|\\)|"|"|,', '', showname)) %>%
-  separate_rows(showname, sep = " ") %>%
-  left_join(rownames_to_column(res_all$table),
-            by = c("showname" = "rowname")) %>%
-  left_join(KEGG_reactions, by = "reaction") %>%
-  mutate(gene_name = AnnotationDbi::select(org.Sc.sgd.db, 
-                                           keys = showname, 
-                                           columns = "GENENAME")$GENENAME) %>%
-  mutate(gene_name = coalesce(gene_name, showname))
-
-# find our fc values needed for color scale
-max_fc <-
-  ceiling(max(c(
-    abs(graph.data$logFC.EtOHvsMOCK.MSN24dd),
-    abs(graph.data$logFC.EtOHvsMOCK.WT)
-  ), na.rm = TRUE))
-
-# create graph for WT stress response
-WT.graph <- graph.data %>%
-  ggplot(aes(x = x, y = y)) +
-  overlay_raw_map(pathway_to_graph) +
-  ggrepel::geom_label_repel(
-    aes(label = gene_name, fill = logFC.EtOHvsMOCK.WT),
-    box.padding = 0.05,
-    label.padding = 0.05,
-    direction = "y",
-    size = 2,
-    max.overlaps = 100,
-    label.r = 0.002,
-    seed = 123
-  ) +
-  theme_void() +
-  scale_fill_gradientn(
-    colours = rev(RColorBrewer::brewer.pal(n = 10, name = "RdYlBu")),
-    limits = c(-max_fc, max_fc)
-  ) +
-  theme(plot.margin = unit(c(0, 0, 0, 0), "cm")) +
-  labs(fill = "logFC", title = "      WT Response to Ethanol")
-
-# create graph for mutant stress response
-msn24.graph <- graph.data %>%
-  ggplot(aes(x = x, y = y)) +
-  overlay_raw_map(pathway_to_graph) +
-  ggrepel::geom_label_repel(
-    aes(label = gene_name, fill = logFC.EtOHvsMOCK.MSN24dd),
-    box.padding = 0.05,
-    label.padding = 0.05,
-    direction = "y",
-    size = 2,
-    max.overlaps = 100,
-    label.r = 0.002,
-    seed = 123
-  ) +
-  theme_void() +
-  guides(fill = FALSE) +
-  scale_fill_gradientn(
-    colours = rev(RColorBrewer::brewer.pal(n = 10, name = "RdYlBu")),
-    limits = c(-max_fc, max_fc)
-  ) +
-  theme(plot.margin = unit(c(0, 0, 0, 0), "cm")) +
-  labs(fill = "logFC", title = "      Msn2/4∆∆ Response to Ethanol")
-
-
-
-# generate the graph
-side_by_side_graph <- WT.graph + msn24.graph +
-  patchwork::plot_annotation(tag_levels = 'A')
-
-# display the graph
-side_by_side_graph
-```
-
 Once we are happy with our graph. We might want to save it. We can save it like this
 
 ```{r save-graph, warning=FALSE}
 # command to save graph
-ggsave(paste0(path_to_kegg_images,pathway_to_graph,".sidebyside.pdf"),
-       plot = side_by_side_graph,
-       device = "pdf",
-       width=10,
-       height=6,
-       dpi=300
-       )
+ggsave(paste0(path_to_kegg_images,
+              "logFC.EtOHvsWT.MSN24ddvsWT_KEGG_Glycolysis.pdf"),
+       device = "pdf", width=4, height=4.5, dpi=600)
 ```
 
 # Additional KEGG-related analyses
