@@ -36,7 +36,7 @@ if (!require("pak")) install.packages("pak"); library(pak)
 
 pak(c(
   "tidyverse", "knitr", "readr", "pander", "BiocManager",
-  "dplyr", "stringr", "purrr", "reactable","edgeR", 
+  "dplyr", "stringr", "purrr", "edgeR", 
   "AnnotationDbi", "org.Sc.sgd.db", "clusterProfiler",
   "BiocFileCache", # for saving downloaded data files
   "pathview", 
@@ -61,6 +61,7 @@ library(edgeR)
 library(org.Sc.sgd.db)
 library(tidyverse)
 library(clusterProfiler)
+library(Paralogs)
 ```
 
 # Loading in the edgeR DE gene file output.
@@ -87,7 +88,7 @@ if (!exists("res", envir = .GlobalEnv)) {
 }
 
 # let's also get the res object for all of the contrasts at once (from GitHub)
-res_all <- readr::read_rds("https://github.com/clstacy/GenomicAnalysis/raw/main/Data/DE_genes/edgeR/yeast_res_all_edgeR.Rds"
+res_all <- readr::read_rds("https://github.com/clstacy/GenomicAnalysis/raw/main/Data/Msn24_EtOH/DE_genes/edgeR/yeast_res_all_edgeR.Rds")
 ```
 
 # KEGG Analysis
@@ -221,10 +222,6 @@ kegg_results <- clusterProfiler::enrichKEGG(gene = DE_genes, #entrez_ids$ENTREZI
 # take a peak at the results
 head(kegg_results)
 
-# create a table for the html file
-data.frame(kegg_results) %>% reactable::reactable()
-
-
 # Remove " - Saccharomyces cerevesiae" from each description entry
 kegg_results@result$Description <- kegg_results@result$Description %>% 
   print() %>%
@@ -235,7 +232,7 @@ kegg_results@result$Description <- kegg_results@result$Description %>%
 
 The first way we might want to visualize this plot is part of a KEGG pathway. We can open an html window with genes that are enriched highlighted, like this. Run one of these lines below and it will open a new window in your browser.
 
-```{r open-KEGGbrowser}
+```{r open-KEGGbrowser, eval=FALSE}
 browseKEGG(kegg_results, 'sce00500')  # starch & sucrose metabolism
 browseKEGG(kegg_results, 'sce04213')  # longevity
 ```
@@ -247,8 +244,10 @@ Using the `res_all` object instead, we can compare logFC across contrasts. We ca
 *If asked to create a cache directory, type "yes" and hit enter.*
 
 ```{r graphing-Paralogs}
+#| fig-dpi: 600
+
 plotParalogs(
-  kegg_results, res, #pathway_code = "sce00020", 
+  kegg_results, res,
   pathway_code = "sce00500",
   keytype = "ORF", juke = 17
 )
@@ -346,7 +345,8 @@ The `emapplot` function supports results obtained from hypergeometric test and g
 x2 = enrichplot::pairwise_termsim(kegg_results)
 enrichplot::emapplot(x2, 
          showCategory = 30,
-         cex.params = list(category_label = 0.4))
+         size_category = 1
+         )
 ```
 
 # GSEA
