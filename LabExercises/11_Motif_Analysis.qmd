@@ -42,7 +42,7 @@ We start by setting our seed and loading the necessary packages. We use `pak` to
 if (!require("pak")) install.packages("pak"); library(pak)
 
 pak(c("tidyverse", "knitr", "readr", "pander", 
-      "BiocManager","dplyr", "stringr") # for pretty tables.
+      "BiocManager","dplyr", "stringr", "tidyr") # for pretty tables.
   )
 
 # We also need these packages today.
@@ -54,6 +54,9 @@ library(biomaRt)
 library(memes)
 library(curl)
 library(universalmotif)
+library(dplyr)
+library(tidyr)
+library(Biostrings)
 ```
 
 
@@ -158,7 +161,7 @@ glimpse(seq)
 ```
 
 Now we have the 500bp upstream sequences for (almost) all of the genes
-in the genome. Note that for yeast, this isn't too much data for a
+in the genome. In yeast, this isn't too much data for a
 laptop. If you're working with a larger genome, you might need to subset
 the gene list down just to the genes in your gene list.
 
@@ -196,7 +199,7 @@ msn24_EtOH_down_fa <- Biostrings::DNAStringSet(msn24_EtOH_down$coding_gene_flank
 names(msn24_EtOH_down_fa) <- msn24_EtOH_down$ID
 ```
 
-Let's create a folder to which we can save output files. 
+Create a folder to which we can save output files. 
 ```{r}
 # Choose output directory for the output files to be saved
 out_dir <- path.expand("~/Desktop/Genomic_Data_Analysis/Analysis/memes/")
@@ -211,8 +214,9 @@ if (!dir.exists(out_dir)) {
 ## Run Meme enrichment
 
 This was the first algorithm developed in the MEME-suite, and is still
-widely used. However, it is not always the best approach. MEME is
-recommended when you have fewer than 50 sequences, while STREME is
+widely used. However, it is not always the best approach. 
+
+MEME is recommended when you have fewer than 50 sequences, while STREME is
 recommended when you have more. Also, the default parameter settings are
 often **not** the best options depending on your organism (e.g, bacteria
 tend to have longer motifs). We can adjust these settings in class to
@@ -227,7 +231,7 @@ meme_msn24_EtOH_down <- runMeme(msn24_EtOH_down_fa,
         maxw= 50, #default is 50, for yeast I use 20
         mod= "zoops", #zero or one occurence per sequence
         parse_genomic_coord=FALSE,
-        silent=F,
+        silent=FALSE,
         outdir = path.expand(paste0(out_dir, "meme_msn24_EtOH_down"))
         )
 
@@ -263,7 +267,7 @@ names(background_fa) <- left_join(FC_list,seq, by=c("ID" = "ensembl_gene_id")) |
 ```{r}
 # Run Streme
 streme_msn24_EtOH_down <- runStreme(msn24_EtOH_down_fa, 
-        control= background_fa,
+        control = background_fa,
         minw = 5, # default is 8, for yeast I use 5
         maxw= 20, #default is 15, for yeast i use 20
         parse_genomic_coord=FALSE,
@@ -278,12 +282,12 @@ streme_msn24_EtOH_down
 ## Run TomTom analysis
 
 Now, we can see if any of those identified motifs correspond to known
-motifs in databases. The TomTom algorithm, part of the MEME-suite,
-allows us to just that, comparing our identified motifs to known motifs
+motifs in public databases. The TomTom algorithm, part of the MEME-suite,
+allows us to do that, comparing our identified motifs to known motifs
 in annotation databases.
 
 First, we need to download the YEASTRACT database file called
-(YEASTRACT_20130918.meme). We will pull this file from Github, but you
+(YEASTRACT_20130918.meme). We pull this file from Github, but you
 can see and download all of the available databases at:
 <https://meme-suite.org/meme/doc/download.html>.
 
@@ -407,6 +411,9 @@ streme_tomtom_msn24_EtOH_up <- runTomTom(
   database = db_destination,
   outdir = path.expand(paste0(out_dir, "tomtom_streme_msn24_EtOH_up"))
   )
+
+# View TomTom results
+view_tomtom_hits(streme_tomtom_msn24_EtOH_up, top_n = 3)
 ```
 
 Are Msn2/4 motifs enriched here? What biological meaning can we take
@@ -421,7 +428,7 @@ different stressor.
 # create gene list
 skn7_NaCl_down <- FC_list |>
   filter(logFC..WT.v.skn7.mutant..NaCl.response < -2) |>
-  filter(FDR..WT.v.skn7.mutant.NaCl.response<0.00001) |>
+  filter(FDR..WT.v.skn7.mutant.NaCl.response<0.01) |>
   dplyr::select(ID) %>%
   # add the upstream seqs as a new column
   left_join(seq, by=c("ID" = "ensembl_gene_id")) |>
@@ -456,6 +463,9 @@ streme_tomtom_skn7_NaCl_down <- runTomTom(
   outdir = path.expand(paste0(out_dir, "tomtom_streme_skn7_NaCl_down"))
   )
 
+## See these results with the code below:
+# view_tomtom_hits(streme_tomtom_skn7_NaCl_up, top_n = 3)
+# view_tomtom_hits(streme_tomtom_skn7_NaCl_down, top_n = 3)
 ```
 
 Notice we have fewer genes this time, let's try meme instead
@@ -464,8 +474,6 @@ Notice we have fewer genes this time, let's try meme instead
 # Run Meme
 meme_skn7_NaCl_down <- runMeme(
   skn7_NaCl_down_fa,
-  # control= "shuffle", #background_fa,
-  # objfun="de",
   parse_genomic_coord = FALSE,
   minw = 5,
   maxw = 20,
@@ -481,7 +489,6 @@ meme_skn7_NaCl_down <- runMeme(
 # Run TomTom analysis
 meme_tomtom_skn7_NaCl_down <- runTomTom(
   input = meme_skn7_NaCl_down,
-  # norc = TRUE,
   thresh = 10,
   motif_pseudo = 0.1,
   min_overlap = 5,
