@@ -29,24 +29,50 @@ At the end of this exercise, you should be able to:
     -   Interpret results from motif analysis, including motif width and significance
 -   **TomTom Analysis:** Use TomTom to compare identified motifs with known motifs in databases & interpret results
 
+## MEME Install
+You will need to install MEME software on your computer if you don't already have it.
+
+The code below downloads & installs the software for MacOS, if it not on your computer. The output when installing is VERY long, you can close the output by clicking the small x in the top right corner of the output box.
+
+The **MEME suite does not currently support Windows OS**, although it can be done with WSL. We will be using Mac for this analysis.
+
+```{bash, eval=TRUE}
+# Check for XCode on Mac or prompt installation
+xcode-select --install
+
+# Define MEME version
+# Latest version as of 23 Oct 2023, 
+version="5.5.4"
+
+# Install MEME if not already installed
+if ! command -v $HOME/meme/bin/meme &> /dev/null; then
+  curl -o $HOME/meme-$version.tar.gz https://meme-suite.org/meme/meme-software/$version/meme-$version.tar.gz
+  tar zxf $HOME/meme-$version.tar.gz
+  cd meme-$version
+  ./configure --prefix=$HOME/meme --with-url=http://meme-suite.org/ --enable-build-libxml2 --enable-build-libxslt
+  make
+  make test
+  make install
+fi
+```
+
+
+## Load packages
 We start by setting our seed and loading the necessary packages. We use `pak` to load libraries we will use today.
 
 ```{r}
 if (!require("pak")) install.packages("pak"); library(pak)
 
 pak(c("tidyverse", "knitr", "readr", "pander", 
-      "BiocManager","dplyr", "stringr", "tidyr") # for pretty tables.
-  )
+      "BiocManager","dplyr", "stringr", "tidyr") )
 
 # We also need these packages today.
-pak(c(#"biomaRt",
-      "memes", "Biostrings", "curl", "universalmotif",
+pak(c("memes", "Biostrings", "curl", "universalmotif",
       "GenomicFeatures", "BSgenome.Scerevisiae.UCSC.sacCer3",
       "TxDb.Scerevisiae.UCSC.sacCer3.sgdGene", "org.Sc.sgd.db")
    )
 
 # Ensure packages installed correctly
-# library(biomaRt)
 library(memes)
 library(curl)
 library(universalmotif)
@@ -59,31 +85,7 @@ library(TxDb.Scerevisiae.UCSC.sacCer3.sgdGene)
 library(org.Sc.sgd.db)
 ```
 
-You will need to install MEME software on your computer if you don't already have it.
 
-The code below downloads & installs the software for MacOS, if it not on your computer. The output when installing is VERY long, you can close the output by clicking the small x in the top right corner of the output box.
-
-The **MEME suite does not currently support Windows OS**, although it can be done with WSL. We will be using Mac for this analysis.
-
-```{bash, eval=FALSE}
-# Check for XCode on Mac or prompt installation
-xcode-select --install
-
-# Define MEME version
-# Latest version as of 23 Oct 2023, 
-version="5.5.4"
-
-# Install MEME if not already installed
-if ! command -v $HOME/meme/bin/meme &> /dev/null; then
-  curl -o $HOME/meme-$version.tar.gz https://meme-suite.org/meme/meme-software/$version/meme-$version.tar.gz
-  tar zxf meme-$version.tar.gz
-  cd meme-$version
-  ./configure --prefix=$HOME/meme --with-url=http://meme-suite.org/ --enable-build-libxml2 --enable-build-libxslt
-  make
-  make test
-  make install
-fi
-```
 
 ## Verify MEME Installation
 
@@ -92,7 +94,7 @@ fi
 check_meme_install()
 ```
 
-If install didn't work, troubleshooting is needed.
+If install didn't work, let us know and we can help.
 
 # Analysis: Motif Discovery for *msn2/4*∆∆ vs WT Response to EtOH
 
@@ -133,6 +135,9 @@ upstream_seqs <- getSeq(BSgenome.Scerevisiae.UCSC.sacCer3, promoter_regions)
 # add gene names
 seq_names <- mcols(promoter_regions)$tx_name
 names(upstream_seqs) <- seq_names
+
+# See what these results look like
+upstream_seqs
 ```
 
 Now we have the 500bp upstream sequences for (almost) all of the genes in the genome. In yeast, this isn't too much data for a laptop. If you're working with a larger genome, you might need to subset the gene list down just to the genes in your gene list.
@@ -194,9 +199,9 @@ meme_msn24_EtOH_down <- runMeme(msn24_EtOH_down_fa,
 meme_msn24_EtOH_down
 ```
 
-## Run STEME enrichment
+## Run STREME enrichment
 
-STEME is a newer MEME suite tool, that is better suited to looking for shorter motifs which are common in Eukaryotes.
+STREME is a newer MEME suite tool, that is better suited to looking for shorter motifs which are common in Eukaryotes.
 
 For `runStreme`, properly setting the `control` parameter is key to discovering biologically relevant motifs. Often, using `control = "shuffle"` will produce a suboptimal set of motifs; however, some discriminative analysis designs don't have proper "control" regions other than to shuffle.
 
@@ -227,17 +232,17 @@ First, we need to download the YEASTRACT database file called (YEASTRACT_2013091
 # Download YEASTRACT database .meme
 
 # Define URL where data is located
-URL_to_download <-
+URL_to_download_YEASTRACT <-
   "https://github.com/clstacy/GenomicAnalysis/raw/main/Reference/YEASTRACT_20130918.meme"
 
 # Choose desired destination for the reference database file
-db_destination <-
+db_destination_YEASTRACT <-
   path.expand("~/Desktop/Genomic_Data_Analysis/Reference/YEASTRACT_20130918.meme")
 
-# Download the file and save to db_destination
+# Download the file and save to db_destination_YEASTRACT
 curl::curl_download(
-  url = URL_to_download,
-  destfile = db_destination,
+  url = URL_to_download_YEASTRACT,
+  destfile = db_destination_YEASTRACT,
   quiet = FALSE,
   mode = "wb"
 )
@@ -251,7 +256,7 @@ meme_tomtom_msn24_EtOH_down <-
     norc = TRUE,
     thresh = 10,
     motif_pseudo = 0.1,
-    database = db_destination,
+    database = db_destination_YEASTRACT,
     outdir = path.expand(paste0(out_dir, "tomtom_meme_msn24_EtOH_down"))
   )
 
@@ -271,7 +276,7 @@ streme_tomtom_msn24_EtOH_down <-
     norc = TRUE,
     thresh = 10,
     motif_pseudo = 0.1,
-    database = db_destination,
+    database = db_destination_YEASTRACT,
     outdir = path.expand(paste0(out_dir, "tomtom_streme_msn24_EtOH_down"))
   )
 
@@ -326,7 +331,7 @@ streme_tomtom_msn24_EtOH_up <- runTomTom(
   norc = TRUE,
   thresh = 10,
   motif_pseudo = 0.1,
-  database = db_destination,
+  database = db_destination_YEASTRACT,
   outdir = path.expand(paste0(out_dir, "tomtom_streme_msn24_EtOH_up"))
   )
 
@@ -371,7 +376,7 @@ streme_tomtom_skn7_NaCl_down <- runTomTom(
   # norc = TRUE,
   thresh = 20,
   motif_pseudo = 0.1,
-  database = db_destination,
+  database = db_destination_YEASTRACT,
   outdir = path.expand(paste0(out_dir, "tomtom_streme_skn7_NaCl_down"))
   )
 
@@ -404,7 +409,7 @@ meme_tomtom_skn7_NaCl_down <- runTomTom(
   thresh = 10,
   motif_pseudo = 0.1,
   min_overlap = 5,
-  database = db_destination,
+  database = db_destination_YEASTRACT,
   outdir = path.expand(paste0(out_dir, "tomtom_meme_skn7_NaCl_down"))
   )
 ```
