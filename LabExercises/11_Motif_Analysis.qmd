@@ -66,23 +66,18 @@ if (!require("pak")) install.packages("pak"); library(pak)
 pak(c("tidyverse", "knitr", "readr", "pander", 
       "BiocManager","dplyr", "stringr", "tidyr") )
 
-# We also need these packages today.
-pak(c("memes", "Biostrings", "curl", "universalmotif",
-      "GenomicFeatures", "BSgenome.Scerevisiae.UCSC.sacCer3",
-      "TxDb.Scerevisiae.UCSC.sacCer3.sgdGene", "org.Sc.sgd.db")
-   )
 
 # Ensure packages installed correctly
-library(memes)
-library(curl)
-library(universalmotif)
+if (!require("memes")) install.packages("memes"); library(memes)
+if (!require("curl")) install.packages("curl"); library(curl)
+if (!require("universalmotif")) install.packages("universalmotif"); library(universalmotif)
+if (!require("Biostrings")) install.packages("Biostrings");library(Biostrings)
+if (!require("GenomicFeatures")) install.packages("GenomicFeatures");library(GenomicFeatures)
+if (!require("BSgenome.Scerevisiae.UCSC.sacCer3")) install.packages("BSgenome.Scerevisiae.UCSC.sacCer3");library(BSgenome.Scerevisiae.UCSC.sacCer3)
+if (!require("TxDb.Scerevisiae.UCSC.sacCer3.sgdGene")) install.packages("TxDb.Scerevisiae.UCSC.sacCer3.sgdGene");library(TxDb.Scerevisiae.UCSC.sacCer3.sgdGene)
+if (!require("org.Sc.sgd.db")) install.packages("org.Sc.sgd.db");library(org.Sc.sgd.db)
 library(dplyr)
 library(tidyr)
-library(Biostrings)
-library(GenomicFeatures)
-library(BSgenome.Scerevisiae.UCSC.sacCer3)
-library(TxDb.Scerevisiae.UCSC.sacCer3.sgdGene)
-library(org.Sc.sgd.db)
 ```
 
 
