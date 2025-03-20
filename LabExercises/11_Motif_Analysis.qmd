@@ -68,14 +68,14 @@ pak(c("tidyverse", "knitr", "readr", "pander",
 
 
 # Ensure packages installed correctly
-if (!require("memes")) install.packages("memes"); library(memes)
+if (!require("memes")) BiocManager::install("memes"); library(memes)
 if (!require("curl")) install.packages("curl"); library(curl)
-if (!require("universalmotif")) install.packages("universalmotif"); library(universalmotif)
-if (!require("Biostrings")) install.packages("Biostrings");library(Biostrings)
-if (!require("GenomicFeatures")) install.packages("GenomicFeatures");library(GenomicFeatures)
-if (!require("BSgenome.Scerevisiae.UCSC.sacCer3")) install.packages("BSgenome.Scerevisiae.UCSC.sacCer3");library(BSgenome.Scerevisiae.UCSC.sacCer3)
-if (!require("TxDb.Scerevisiae.UCSC.sacCer3.sgdGene")) install.packages("TxDb.Scerevisiae.UCSC.sacCer3.sgdGene");library(TxDb.Scerevisiae.UCSC.sacCer3.sgdGene)
-if (!require("org.Sc.sgd.db")) install.packages("org.Sc.sgd.db");library(org.Sc.sgd.db)
+if (!require("universalmotif")) BiocManager::install("universalmotif"); library(universalmotif)
+if (!require("Biostrings")) BiocManager::install("Biostrings");library(Biostrings)
+if (!require("GenomicFeatures")) BiocManager::install("GenomicFeatures");library(GenomicFeatures)
+if (!require("BSgenome.Scerevisiae.UCSC.sacCer3")) BiocManager::install("BSgenome.Scerevisiae.UCSC.sacCer3");library(BSgenome.Scerevisiae.UCSC.sacCer3)
+if (!require("TxDb.Scerevisiae.UCSC.sacCer3.sgdGene")) BiocManager::install("TxDb.Scerevisiae.UCSC.sacCer3.sgdGene");library(TxDb.Scerevisiae.UCSC.sacCer3.sgdGene)
+if (!require("org.Sc.sgd.db")) BiocManager::install("org.Sc.sgd.db");library(org.Sc.sgd.db)
 library(dplyr)
 library(tidyr)
 ```
