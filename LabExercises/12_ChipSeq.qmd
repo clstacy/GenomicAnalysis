@@ -47,7 +47,7 @@ if (!require("pak")) install.packages("pak"); library(pak)
 pak(c(
   "dplyr", "stringr", "Rfastp", "Rsubread",
   "ChIPseeker", "GenomicRanges", #"Iranges",
-  "BiocManager",
+  "BiocManager", "ggimage", "ggupset",
   "TxDb.Scerevisiae.UCSC.sacCer3.sgdGene",
   "BSgenome.Scerevisiae.UCSC.sacCer3",
   "clusterProfiler", "forcats", "memes", "curl",
