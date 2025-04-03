@@ -29,15 +29,11 @@ At the end of this exercise, you should be able to:
 
 ## Exercise Background
 
-In this exercise, we will look at a published ChIP-seq data for
-Msn2/4 mutants under EtOH stress conditions similar to those we have
-been exploring throughout this course. The data comes from SRA accession SRP033438, from the publication [<https://doi.org/10.1093/nar/gku176>]. We will
-go through this analysis together, starting from the raw fastq files.
+In this exercise, we will look at a published ChIP-seq data for Msn2/4 mutants under EtOH stress conditions similar to those we have been exploring throughout this course. The data comes from SRA accession SRP033438, from the publication \[<https://doi.org/10.1093/nar/gku176>\]. We will go through this analysis together, starting from the raw fastq files.
 
 ## Pre-Analysis Preparations
 
-Before analyzing our ChIP-seq results, we need to prepare our computing
-environment for this analysis.
+Before analyzing our ChIP-seq results, we need to prepare our computing environment for this analysis.
 
 ### Prepare Software
 
@@ -54,7 +50,8 @@ pak(c(
   "BiocManager",
   "TxDb.Scerevisiae.UCSC.sacCer3.sgdGene",
   "BSgenome.Scerevisiae.UCSC.sacCer3",
-  "clusterProfiler", "forcats", "memes", "curl"
+  "clusterProfiler", "forcats", "memes", "curl",
+  "MACSr" # for the MACS software
   )
 )
 
@@ -82,67 +79,29 @@ library(forcats)
 library(memes)
 library(BSgenome.Scerevisiae.UCSC.sacCer3)
 library(curl)
+library(MACSr)
 ```
-
-### Conda environments
-
-Similar to exercise `03_WorkingWithSequences.qmd`, we need to use software that is not available in R. To install these software, we can create and activate conda environments. 
-
-**If you haven't done set-up of conda on your system as described in Exercise 03, this code likely won't run for you.**
 
 #### MACS2
 
-A popular software for peak-calling ChIP-seq data is
-[MACS2](https://pypi.org/project/MACS2/). It uses a Poisson
-distribution-based model to background identify significant peaks in ChIP-seq data.
+A popular software for peak-calling ChIP-seq data is [MACS3](https://macs3-project.github.io/MACS/). It uses a Poisson distribution-based model to background identify significant peaks in ChIP-seq data.
 
-The code chunk below creates a conda environment called `MACS` and installs MACS2 in that environment.
+We are using an R package wrapper for this tool, called `MACSr`
 
-**Note: This code can take a few minutes to run.**
-```{bash create-MACS2condaEnvironment, engine.opts='-l'}
-# update conda if needed
-# conda update -n base conda
-
-# libmamba is a faster solver for conda
-#conda install -n base conda-libmamba-solver
-#conda config --set solver libmamba
-
-# create an enviornment for our QC packages
-if conda info --envs | grep -q MACS; then echo "environment 'MACS' already exists"; else conda create --experimental-solver=libmamba -y -n MACS macs2 -c bioconda; fi
-
-# see available conda environments
-conda env list
-
-# activate our MACS environment
-conda activate MACS
-
-# make sure desired package is working
-which macs2
-
-# See which version is installed
-macs2 --version
-
-# good coding practice is to deactivate a conda environment
-# at the end of a code chunk
-conda deactivate
-```
 
 ## Data Retreival
 
-For today's exercise, the software Model-based Analysis of ChIP-seq (MACS) will be doing the ChIP-seq specific part of our analysis. MACS needs `.bam` files as input, which we can generate in the same way as we did in the `04_ReadMapping.qmd` exercise. 
-However, we get `.fastq` files from sequencing, so we have to align the fastq files to the genome to generate `.bam` files.
+For today's exercise, the software Model-based Analysis of ChIP-seq (MACS) will be doing the ChIP-seq specific part of our analysis. MACS needs `.bam` files as input, which we can generate in the same way as we did in the `04_ReadMapping.qmd` exercise. However, we get `.fastq` files from sequencing, so we have to align the fastq files to the genome to generate `.bam` files.
 
 ### FASTQ files
 
-We will be analyzing paired-end FASTQ files from the publication <https://doi.org/10.1093/nar/gku176>, with experiment SRA accession SRP033438. 
-Specifically, we will be comparing data from time 0 minutes (SRR1181480) and time 20 minutes (SRR1181481) post glucose to glycerol shift, an environment induces an environmental stress response in yeast. 
+We will be analyzing paired-end FASTQ files from the publication <https://doi.org/10.1093/nar/gku176>, with experiment SRA accession SRP033438. Specifically, we will be comparing data from time 0 minutes (SRR1181480) and time 20 minutes (SRR1181481) post glucose to glycerol shift, an environment induces an environmental stress response in yeast.
 
 #### Two options for downloading the data:
 
 We could use the SRA toolkit to download these files (tutorial [here](https://erilu.github.io/python-fastq-downloader/#downloading-fastq-files-using-the-sra-toolkit)).
 
 An alternative approach we can use to download these files is going to <https://www.ebi.ac.uk/ena/browser/view/SRR1181480> and <https://www.ebi.ac.uk/ena/browser/view/SRR1181481> to download the files manually, or download the bash script (`Get download script`) that we can use to download the files. We will use a modified version of that code to download the files today.
-
 
 ```{bash fetch-fastq-chipseq, engine.opts='-l'}
 # Be sure to change this file path to the path you want your data to go
@@ -207,7 +166,6 @@ fi
 ls -lah
 ```
 
-
 ### Reference files
 
 #### **Genome**
@@ -244,9 +202,10 @@ ChIPseq will often show the presence of common artifacts, such as ultra-high sig
 
 ## QC & Trimming
 
-We can use **FastQC** to do quality control for fastq files generated in ChIP-seq experiments. For the sake of time in class, we will skip using  FastQC on the reads today. We can look at the `rfastp` QC reports in 
+We can use **FastQC** to do quality control for fastq files generated in ChIP-seq experiments. For the sake of time in class, we will skip using FastQC on the reads today. We can look at the `rfastp` QC reports in
 
 Get paths to all of our read files, split by read 1 and read 2.
+
 ```{r}
 # assign directory with the raw fastq files
 fq_file_dir <- path.expand("~/Desktop/Genomic_Data_Analysis/Data/Raw/ChIP")
@@ -320,6 +279,7 @@ trimmed_fastq_files_R2
 #### Build Genome Index for Rsubread
 
 We have already done this in the Read_mapping.Rmd exercise. If you've already created this, we can skip this step.
+
 ```{r}
 # Set path of the reference fasta file
 reference_genome = path.expand("~/Desktop/Genomic_Data_Analysis/Reference/Saccharomyces_cerevisiae.R64-1-1.dna.toplevel.fa.gz")
@@ -330,8 +290,8 @@ index_reference_genome = path.expand("~/Desktop/Genomic_Data_Analysis/Reference/
 buildindex(basename=index_reference_genome, reference=reference_genome)
 ```
 
-
 ## Align trimmed files to the reference genome.
+
 ```{r}
 # run the alignment on all of the trimmed_fastq_files
 align(index=index_reference_genome, 
@@ -353,6 +313,7 @@ if (!dir.exists(dir_bam_files)) {dir.create(dir_bam_files, recursive = TRUE)}
 ```
 
 Move output files into bam file directory
+
 ```{bash}
 trim_fq_dir=~/Desktop/Genomic_Data_Analysis/Data/Trimmed/ChIP
 bam_dir=~/Desktop/Genomic_Data_Analysis/Data/Bam/ChIP/
@@ -360,6 +321,7 @@ mv $trim_fq_dir/*.BAM* $bam_dir
 ```
 
 Save the paths to our bam files as an object.
+
 ```{r}
 bam_files <- list.files(path = dir_bam_files, pattern = ".BAM$", full.names = TRUE)
 bam_files
@@ -370,13 +332,14 @@ bam_files
 Now, we are able to call peaks with MACS2.
 
 To run MACS2 to we need to supply:
-      
-    1. A BAM file to find enriched regions in. (specified after -t)
-      a. this is the only REQUIRED parameter for MACS
-    2. A Name for peak calls (specified after –name).
-    3. An output folder to write peaks into (specified after –outdir).
-    4. Optionally, but highly recommended, we can identify a control to compare to (specified after –c).
 
+```         
+1. A BAM file to find enriched regions in. (specified after -t)
+  a. this is the only REQUIRED parameter for MACS
+2. A Name for peak calls (specified after –name).
+3. An output folder to write peaks into (specified after –outdir).
+4. Optionally, but highly recommended, we can identify a control to compare to (specified after –c).
+```
 
 In this analysis, we only need to do a single call to macs2 because we only have one treatment sample and one control sample. If we had more samples, we'd want to run macs2 for every sample.
 
@@ -384,53 +347,97 @@ For the purpose of demonstration, we will run macs2 on each sample with no contr
 
 Flags we've used for MACS2:
 
-    - `-n` output file name prefix
-    - `--outdir` path to where output files should be saved
-    - `f` type of files being input. Usually `BAM` (or `BAMPE` for paired-end.)
-    - `g` is the genome size. this has been set for yeast genome
-    - `B` output bedgraph files
-    - `--nomodel` MACS will bypass building the shifting model.
-    - `extsize` While --nomodel is set, MACS uses this parameter to extend reads in 5'->3' direction to fix-sized fragments.
-    
-```{bash run-MACS2-chip, engine.opts='-l'}
-# activate our MACS environment
-conda activate MACS
+```         
+- `-n` output file name prefix
+- `--outdir` path to where output files should be saved
+- `f` type of files being input. Usually `BAM` (or `BAMPE` for paired-end.)
+- `g` is the genome size. this has been set for yeast genome
+- `B` output bedgraph files
+- `--nomodel` MACS will bypass building the shifting model.
+- `extsize` While --nomodel is set, MACS uses this parameter to extend reads in 5'->3' direction to fix-sized fragments.
+```
 
-macs_outdir=/Users/$USER/Desktop/Genomic_Data_Analysis/Analysis/ChIP/
+
+```{r run-MACS3}
+macs_outdir <- "/Users/$USER/Desktop/Genomic_Data_Analysis/Analysis/ChIP/"
+
+# create macs_outdir if it doesn't exist
+if (!dir.exists(macs_outdir)) {
+  dir.create(macs_outdir, recursive = TRUE)
+}
 
 # run macs on the 0 minutes sample, no control
-macs2 callpeak -t "/Users/$USER/Desktop/Genomic_Data_Analysis/Data/Bam/ChIP/SRR1181480_R1.fastq.gz.subread.BAM" \
-  -n MSN24_ESR_t0_noControl \
-  --outdir $macs_outdir \
-  -f BAMPE \
-  -g 1.2e7 \
-  -B \
-  --nomodel \
-  --extsize 50
+callpeak_0min_noControl <- callpeak(
+  tfile = "/Users/$USER/Desktop/Genomic_Data_Analysis/Data/Bam/ChIP/SRR1181480_R1.fastq.gz.subread.BAM",
+  name = "MSN24_ESR_t0_noControl",
+  outdir = macs_outdir,
+  format = "BAMPE",
+  gsize = "1.2e7",
+  store_bdg = TRUE,
+  nomodel = TRUE,
+  extsize = 50
+)
+# macs2 callpeak -t "/Users/$USER/Desktop/Genomic_Data_Analysis/Data/Bam/ChIP/SRR1181480_R1.fastq.gz.subread.BAM" \
+#   -n MSN24_ESR_t0_noControl \
+#   --outdir $macs_outdir \
+#   -f BAMPE \
+#   -g 1.2e7 \
+#   -B \
+#   --nomodel \
+#   --extsize 50
 
 
 # run macs on the 20 minutes sample, no control
-macs2 callpeak -t "/Users/$USER/Desktop/Genomic_Data_Analysis/Data/Bam/ChIP/SRR1181481_R1.fastq.gz.subread.BAM" \
-               -n MSN24_ESR_t20_noControl \
-               --outdir $macs_outdir \
-               -f BAMPE \
-               -g 1.2e7 \
-               -B \
-               --nomodel \
-               --extsize 50
+callpeak_20min_noControl <- callpeak(
+  tfile = "/Users/$USER/Desktop/Genomic_Data_Analysis/Data/Bam/ChIP/SRR1181481_R1.fastq.gz.subread.BAM",
+  name = "MSN24_ESR_t20_noControl",
+  outdir = macs_outdir,
+  format = "BAMPE",
+  gsize = "1.2e7",
+  store_bdg = TRUE,
+  nomodel = TRUE,
+  extsize = 50
+)
+# macs2 callpeak -t "/Users/$USER/Desktop/Genomic_Data_Analysis/Data/Bam/ChIP/SRR1181481_R1.fastq.gz.subread.BAM" \
+#                -n MSN24_ESR_t20_noControl \
+#                --outdir $macs_outdir \
+#                -f BAMPE \
+#                -g 1.2e7 \
+#                -B \
+#                --nomodel \
+#                --extsize 50
 
 
 # run macs with 20 min as treatment and 0 min as control
-## Using control sample here is best practice
-macs2 callpeak -t "/Users/$USER/Desktop/Genomic_Data_Analysis/Data/Bam/ChIP/SRR1181481_R1.fastq.gz.subread.BAM" \
-               -n MSN24_ESR_t20vst0 \
-               -c "/Users/$USER/Desktop/Genomic_Data_Analysis/Data/Bam/ChIP/SRR1181480_R1.fastq.gz.subread.BAM" \
-               --outdir $macs_outdir \
-               -B \
-               -f BAMPE \
-               -g 1.2e7
+## Using a control sample here is best practice
+callpeak_20v0min <- callpeak(
+  tfile = "/Users/$USER/Desktop/Genomic_Data_Analysis/Data/Bam/ChIP/SRR1181481_R1.fastq.gz.subread.BAM",
+  cfile= "/Users/$USER/Desktop/Genomic_Data_Analysis/Data/Bam/ChIP/SRR1181480_R1.fastq.gz.subread.BAM",
+  name = "MSN24_ESR_t20vst0",
+  outdir = macs_outdir,
+  format = "BAMPE",
+  gsize = "1.2e7",
+  store_bdg = TRUE,
+  nomodel = FALSE,
+  extsize = 50
+)
+
+# macs2 callpeak -t "/Users/$USER/Desktop/Genomic_Data_Analysis/Data/Bam/ChIP/SRR1181481_R1.fastq.gz.subread.BAM" \
+#                -n MSN24_ESR_t20vst0 \
+#                -c "/Users/$USER/Desktop/Genomic_Data_Analysis/Data/Bam/ChIP/SRR1181480_R1.fastq.gz.subread.BAM" \
+#                --outdir $macs_outdir \
+#                -B \
+#                -f BAMPE \
+#                -g 1.2e7
                
 
+
+
+```
+
+
+```{bash rename-bdg, engine.opts='-l'}
+macs_outdir=/Users/$USER/Desktop/Genomic_Data_Analysis/Analysis/ChIP/
 
 # Rename all *.bdg to *.bedgraph for IGV visualization
 for file in ${macs_outdir}*.bdg; do
@@ -439,17 +446,13 @@ done
 
 ```
 
-
 # Working with Peaks in R
 
 We can use R to analyze the peaks generated by macs2. There are many approaches for doing this. We will use the `ChIPseeker` package, followed by tools we've previously used for downstream analysis.
 
 ## Importing Peaks
 
-MACS peak calls can be found in our specified output directory with the ending "_peaks.xls".
-MACS peaks come as a tab separated file (thinly disguised as a “.xls”).
-In addition to the genomic coordinates of peaks, these files contain useful information on the samples, parameters and version used for peak calling at the top.
-
+MACS peak calls can be found in our specified output directory with the ending "\_peaks.xls". MACS peaks come as a tab separated file (thinly disguised as a ".xls"). In addition to the genomic coordinates of peaks, these files contain useful information on the samples, parameters and version used for peak calling at the top.
 
 ```{r}
 MSN24_ESR_t20vst0_peaks <- read.delim("~/Desktop/Genomic_Data_Analysis/Analysis/ChIP/MSN24_ESR_t20vst0_peaks.xls", header = TRUE, comment.char = "#") |>
@@ -459,21 +462,18 @@ MSN24_ESR_t20vst0_peaks <- read.delim("~/Desktop/Genomic_Data_Analysis/Analysis/
   filter(fold_enrichment > 4)
 ```
 
-
 ## Filtering **blacklisted** regions
 
-No peaks were detected in the blacklisted region, so none are filtered out. If you have blacklist regions in your genome, you can remove them now. A variety of software tools are available for excluding them automatically, including `bedtools` intersect. 
+No peaks were detected in the blacklisted region, so none are filtered out. If you have blacklist regions in your genome, you can remove them now. A variety of software tools are available for excluding them automatically, including `bedtools` intersect.
 
 ```{r}
 MSN24_ESR_t20vst0_peaks_filtered <- MSN24_ESR_t20vst0_peaks %>%
   filter(chr != "XII" | end <= 451787 | start >= 468932)
 ```
 
-
 # Peak annotation
 
-Currently, we have peaks loaded in as a data.frame object `MSN24_ESR_t20vst0_peaks`. Note that none of the columns in that file tell us which gene(s) each peak corresponds to. In order to do annotate the peaks, we first need to convert out data frame to a GRanges object from the GenomicRanges package. 
-
+Currently, we have peaks loaded in as a data.frame object `MSN24_ESR_t20vst0_peaks`. Note that none of the columns in that file tell us which gene(s) each peak corresponds to. In order to do annotate the peaks, we first need to convert out data frame to a GRanges object from the GenomicRanges package.
 
 ```{r}
 # Convert dataframe to GRanges object
@@ -486,9 +486,9 @@ MSN24_ESR_t20vst0_peaks_GR <-
   )
 ```
 
-Next, we need to load the TxDb for *S. cerevisiae*. The `GenomicFeatures` package uses TxDb objects to store transcript metadata. This contains information about the 5’ and 3’ untranslated regions (UTRs), protein coding sequences (CDSs) and exons for a set of mRNA transcripts to their associated genome. TxDb objects have numerous accessors functions to allow such features to be retrieved individually or grouped together in a way that reflects the underlying biology.
+Next, we need to load the TxDb for *S. cerevisiae*. The `GenomicFeatures` package uses TxDb objects to store transcript metadata. This contains information about the 5' and 3' untranslated regions (UTRs), protein coding sequences (CDSs) and exons for a set of mRNA transcripts to their associated genome. TxDb objects have numerous accessors functions to allow such features to be retrieved individually or grouped together in a way that reflects the underlying biology.
 
-A list of currently available TxDb's is available at https://bioconductor.org/packages/release/BiocViews.html#___TxDb 
+A list of currently available TxDb's is available at https://bioconductor.org/packages/release/BiocViews.html#\_\_\_TxDb
 
 ```{r}
 # Save the TxDb object for S. cerevisiae to a variable
@@ -504,16 +504,19 @@ peakAnno <- ChIPseeker::annotatePeak(MSN24_ESR_t20vst0_peaks_GR, tssRegion=c(-30
 # See the information this object contains
 peakAnno |> data.frame() |> glimpse()
 ```
+
 ## Visualization
 
 The `ChIPSeeker` package in R contains some functions for visualizing the annotated peaks. We can look at some here.
 
 We see from this pie chart that most of the peaks occurred within 1kb of the TSS for the corresponding gene, with less than 3% of peaks further away.
+
 ```{r}
 plotAnnoPie(peakAnno)
 ```
 
 However, we know many features overlap, so we can use a `vennpie` instead. This shows us that many of of our peaks extend into regions that contain genes.
+
 ```{r}
 vennpie(peakAnno)
 ```
@@ -531,15 +534,13 @@ plotDistToTSS(peakAnno,
 
 Another method for assessing the quality of your alignment is to visualize the alignment using a genome browser. For this workshop we will be using the Integrative Genomics Viewer (IGV) from the Broad Institute. You may already have this downloaded on your computer Alternatively, we can use the web-based IGV to visualize the data.
 
-Go to https://igv.org/app/, select genome as sacCer3, and upload file via `Tracks > local file...`, and select the `MSN24_ESR_t20vst0_treat_pileup.bedgraph` (by default saved to ~/Desktop/Genomic_Data_Analysis/Analysis/ChIP). You can also upload the .bed file in the same folder.
+Go to https://igv.org/app/, select genome as sacCer3, and upload file via `Tracks > local file...`, and select the `MSN24_ESR_t20vst0_treat_pileup.bedgraph` (by default saved to \~/Desktop/Genomic_Data_Analysis/Analysis/ChIP). You can also upload the .bed file in the same folder.
 
 ## Downstream Analysis
 
 ChIP peaks in R: Let's generate a gene list corresponding to peaks that appear in t20 minutes but not t0 minutes. We already have the peaks annotated to genes, so we just need to get a list of genes.
 
-We can extract the unique names of genes with peaks in their TSS by
-subsetting the annotated GRanges and retrieving gene names from the
-geneId column.
+We can extract the unique names of genes with peaks in their TSS by subsetting the annotated GRanges and retrieving gene names from the geneId column.
 
 ```{r}
 peak_genes <- peakAnno |>
@@ -624,14 +625,12 @@ kegg_results@result$Description <- kegg_results@result$Description %>% print() %
 dotplot(kegg_results, showCategory = 10) 
 ```
 
-
 ## Motif Analysis
 
-The MEME-suite that we used in a previous motif analysis exercise has a
-specific algorithm for ChIP-seq analysis, called MEME-ChIP. This workflow hasn't been implemented in the `memes` package in R yet, but can be done in the website at https://meme-suite.org/meme/tools/meme-chip. You can upload a fasta file of the peak summits to be analyzed.
-
+The MEME-suite that we used in a previous motif analysis exercise has a specific algorithm for ChIP-seq analysis, called MEME-ChIP. This workflow hasn't been implemented in the `memes` package in R yet, but can be done in the website at https://meme-suite.org/meme/tools/meme-chip. You can upload a fasta file of the peak summits to be analyzed.
 
 First, let's extract the sequences corresponding to the annotated peak ranges. We will use the `get_sequence` function from the `memes` package for this. This function requires a BSgenome database to pull sequences from, so it has been loaded in.
+
 ```{r}
 # load in sacCer3 genome
 sacCer3.genome <- BSgenome.Scerevisiae.UCSC.sacCer3::BSgenome.Scerevisiae.UCSC.sacCer3
@@ -640,7 +639,8 @@ sacCer3.genome <- BSgenome.Scerevisiae.UCSC.sacCer3::BSgenome.Scerevisiae.UCSC.s
 peak_seqs <- memes::get_sequence(MSN24_ESR_t20vst0_peaks_GR, sacCer3.genome)
 ```
 
-Let's create a folder to which we can save output files. 
+Let's create a folder to which we can save output files.
+
 ```{r create-outdir-motif-chip}
 # Choose output directory for the output files to be saved
 out_dir <- path.expand("~/Desktop/Genomic_Data_Analysis/Analysis/memes/ChIP_msn24/")
@@ -653,8 +653,7 @@ if (!dir.exists(out_dir)) {
 
 ### Streme
 
-We can use Streme to look for enriched motifs in the promoters of those genes corresponding to
-enrichment peaks. Once Streme finishes, we can check out the .html output file in the output folder.
+We can use Streme to look for enriched motifs in the promoters of those genes corresponding to enrichment peaks. Once Streme finishes, we can check out the .html output file in the output folder.
 
 ```{r run-streme-motif}
 # Run Streme
@@ -707,7 +706,6 @@ streme_tomtom_msn24_ChIP <-
 View(streme_tomtom_msn24_ChIP)
 ```
 
-
 # Questions
 
 1.  Based on the results obtained from the MACS2 analysis, what can you infer about the genomic regions where Msn2 is binding?
@@ -715,12 +713,6 @@ View(streme_tomtom_msn24_ChIP)
 2.  If you were designing a ChIP-seq experiment to study Msn2 binding under different conditions, what factors would you consider in your experimental design
 
 3.  What can ChIP-seq tell us about Msn2 that our previous analyses cannot?
-
-
-
-
-
-
 
 Be sure to knit this file into a pdf or html file once you're finished.
 
