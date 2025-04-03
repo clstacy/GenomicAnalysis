@@ -23,7 +23,7 @@ In this exercise, we will analyze ChIP-seq data.
 At the end of this exercise, you should be able to:
 
 -   Understand the workflow for a ChIP-seq experiment
--   Be able to call peaks using macs2 peak caller
+-   Be able to call peaks using macs3 peak caller
 -   Identify genes with TSS nearest to peaks found in ChIP-seq analysis
 -   Conduct and interpret enrichment analyses of putative target gene lists.
 
@@ -82,7 +82,7 @@ library(curl)
 library(MACSr)
 ```
 
-#### MACS2
+#### MACS3
 
 A popular software for peak-calling ChIP-seq data is [MACS3](https://macs3-project.github.io/MACS/). It uses a Poisson distribution-based model to background identify significant peaks in ChIP-seq data.
 
@@ -329,9 +329,9 @@ bam_files
 
 # Peak Calling
 
-Now, we are able to call peaks with MACS2.
+Now, we are able to call peaks with macs3.
 
-To run MACS2 to we need to supply:
+To run macs3 to we need to supply:
 
 ```         
 1. A BAM file to find enriched regions in. (specified after -t)
@@ -341,25 +341,25 @@ To run MACS2 to we need to supply:
 4. Optionally, but highly recommended, we can identify a control to compare to (specified after –c).
 ```
 
-In this analysis, we only need to do a single call to macs2 because we only have one treatment sample and one control sample. If we had more samples, we'd want to run macs2 for every sample.
+In this analysis, we only need to do a single call to macs3 because we only have one treatment sample and one control sample. If we had more samples, we'd want to run macs3 for every sample.
 
-For the purpose of demonstration, we will run macs2 on each sample with no control. **THIS IS NOT RECOMMENDED**. For this analysis, we should just use the third call to macs2 below. We are running the calling without controls so we can look at the peaks that would be called for each alone, so we can compare them to the peaks of the treatment vs control.
+For the purpose of demonstration, we will run macs3 on each sample with no control. **THIS IS NOT RECOMMENDED**. For this analysis, we should just use the third call to macs3 below. We are running the calling without controls so we can look at the peaks that would be called for each alone, so we can compare them to the peaks of the treatment vs control.
 
-Flags we've used for MACS2:
+Flags we've used for MACS3:
 
 ```         
-- `-n` output file name prefix
-- `--outdir` path to where output files should be saved
-- `f` type of files being input. Usually `BAM` (or `BAMPE` for paired-end.)
-- `g` is the genome size. this has been set for yeast genome
-- `B` output bedgraph files
-- `--nomodel` MACS will bypass building the shifting model.
-- `extsize` While --nomodel is set, MACS uses this parameter to extend reads in 5'->3' direction to fix-sized fragments.
+- `name` output file name prefix
+- `outdir` path to where output files should be saved
+- `format` type of files being input. Usually `BAM` (or `BAMPE` for paired-end.)
+- `gsize` is the genome size. this has been set for yeast genome
+- `store_bdg` output bedgraph files
+- `nomodel` MACS will bypass building the shifting model.
+- `extsize` MACS uses this parameter to extend reads in 5'->3' direction to fix-sized fragments.
 ```
 
 
 ```{r run-MACS3}
-macs_outdir <- "/Users/$USER/Desktop/Genomic_Data_Analysis/Analysis/ChIP/"
+macs_outdir <- path.expand("~/Desktop/Genomic_Data_Analysis/Analysis/ChIP/")
 
 # create macs_outdir if it doesn't exist
 if (!dir.exists(macs_outdir)) {
@@ -368,7 +368,7 @@ if (!dir.exists(macs_outdir)) {
 
 # run macs on the 0 minutes sample, no control
 callpeak_0min_noControl <- callpeak(
-  tfile = "/Users/$USER/Desktop/Genomic_Data_Analysis/Data/Bam/ChIP/SRR1181480_R1.fastq.gz.subread.BAM",
+  tfile = path.expand("~/Desktop/Genomic_Data_Analysis/Data/Bam/ChIP/SRR1181480_R1.fastq.gz.subread.BAM"),
   name = "MSN24_ESR_t0_noControl",
   outdir = macs_outdir,
   format = "BAMPE",
@@ -377,19 +377,10 @@ callpeak_0min_noControl <- callpeak(
   nomodel = TRUE,
   extsize = 50
 )
-# macs2 callpeak -t "/Users/$USER/Desktop/Genomic_Data_Analysis/Data/Bam/ChIP/SRR1181480_R1.fastq.gz.subread.BAM" \
-#   -n MSN24_ESR_t0_noControl \
-#   --outdir $macs_outdir \
-#   -f BAMPE \
-#   -g 1.2e7 \
-#   -B \
-#   --nomodel \
-#   --extsize 50
-
 
 # run macs on the 20 minutes sample, no control
 callpeak_20min_noControl <- callpeak(
-  tfile = "/Users/$USER/Desktop/Genomic_Data_Analysis/Data/Bam/ChIP/SRR1181481_R1.fastq.gz.subread.BAM",
+  tfile = path.expand("~/Desktop/Genomic_Data_Analysis/Data/Bam/ChIP/SRR1181481_R1.fastq.gz.subread.BAM"),
   name = "MSN24_ESR_t20_noControl",
   outdir = macs_outdir,
   format = "BAMPE",
@@ -398,21 +389,12 @@ callpeak_20min_noControl <- callpeak(
   nomodel = TRUE,
   extsize = 50
 )
-# macs2 callpeak -t "/Users/$USER/Desktop/Genomic_Data_Analysis/Data/Bam/ChIP/SRR1181481_R1.fastq.gz.subread.BAM" \
-#                -n MSN24_ESR_t20_noControl \
-#                --outdir $macs_outdir \
-#                -f BAMPE \
-#                -g 1.2e7 \
-#                -B \
-#                --nomodel \
-#                --extsize 50
-
 
 # run macs with 20 min as treatment and 0 min as control
 ## Using a control sample here is best practice
 callpeak_20v0min <- callpeak(
-  tfile = "/Users/$USER/Desktop/Genomic_Data_Analysis/Data/Bam/ChIP/SRR1181481_R1.fastq.gz.subread.BAM",
-  cfile= "/Users/$USER/Desktop/Genomic_Data_Analysis/Data/Bam/ChIP/SRR1181480_R1.fastq.gz.subread.BAM",
+  tfile = path.expand("~/Desktop/Genomic_Data_Analysis/Data/Bam/ChIP/SRR1181481_R1.fastq.gz.subread.BAM"),
+  cfile= path.expand("~/Desktop/Genomic_Data_Analysis/Data/Bam/ChIP/SRR1181480_R1.fastq.gz.subread.BAM"),
   name = "MSN24_ESR_t20vst0",
   outdir = macs_outdir,
   format = "BAMPE",
@@ -421,45 +403,33 @@ callpeak_20v0min <- callpeak(
   nomodel = FALSE,
   extsize = 50
 )
-
-# macs2 callpeak -t "/Users/$USER/Desktop/Genomic_Data_Analysis/Data/Bam/ChIP/SRR1181481_R1.fastq.gz.subread.BAM" \
-#                -n MSN24_ESR_t20vst0 \
-#                -c "/Users/$USER/Desktop/Genomic_Data_Analysis/Data/Bam/ChIP/SRR1181480_R1.fastq.gz.subread.BAM" \
-#                --outdir $macs_outdir \
-#                -B \
-#                -f BAMPE \
-#                -g 1.2e7
-               
-
-
-
 ```
 
 
 ```{bash rename-bdg, engine.opts='-l'}
+# save output directory to a variable for bash command
 macs_outdir=/Users/$USER/Desktop/Genomic_Data_Analysis/Analysis/ChIP/
 
 # Rename all *.bdg to *.bedgraph for IGV visualization
 for file in ${macs_outdir}*.bdg; do
    mv -- "$file" "${file%.bdg}.bedgraph"
 done
-
 ```
 
 # Working with Peaks in R
 
-We can use R to analyze the peaks generated by macs2. There are many approaches for doing this. We will use the `ChIPseeker` package, followed by tools we've previously used for downstream analysis.
+We can use R to analyze the peaks generated by macs3. There are many approaches for doing this. We will use the `ChIPseeker` package, followed by tools we've previously used for downstream analysis.
 
 ## Importing Peaks
 
 MACS peak calls can be found in our specified output directory with the ending "\_peaks.xls". MACS peaks come as a tab separated file (thinly disguised as a ".xls"). In addition to the genomic coordinates of peaks, these files contain useful information on the samples, parameters and version used for peak calling at the top.
 
 ```{r}
-MSN24_ESR_t20vst0_peaks <- read.delim("~/Desktop/Genomic_Data_Analysis/Analysis/ChIP/MSN24_ESR_t20vst0_peaks.xls", header = TRUE, comment.char = "#") |>
+MSN24_ESR_t20vst0_peaks <- read.delim("~/Desktop/Genomic_Data_Analysis/Analysis/ChIP/MSN24_ESR_t20vst0_peaks.xls", header = TRUE, comment.char = "#") |> 
   # filter on significance of peaks
-  filter(X.log10.pvalue. > 5) |>
+  dplyr::filter(X.log10.pvalue. > 5) |>
   # filter on magnitude of enrichment
-  filter(fold_enrichment > 4)
+  dplyr::filter(fold_enrichment > 4)
 ```
 
 ## Filtering **blacklisted** regions
@@ -468,7 +438,7 @@ No peaks were detected in the blacklisted region, so none are filtered out. If y
 
 ```{r}
 MSN24_ESR_t20vst0_peaks_filtered <- MSN24_ESR_t20vst0_peaks %>%
-  filter(chr != "XII" | end <= 451787 | start >= 468932)
+  dplyr::filter(chr != "XII" | end <= 451787 | start >= 468932)
 ```
 
 # Peak annotation
@@ -534,7 +504,7 @@ plotDistToTSS(peakAnno,
 
 Another method for assessing the quality of your alignment is to visualize the alignment using a genome browser. For this workshop we will be using the Integrative Genomics Viewer (IGV) from the Broad Institute. You may already have this downloaded on your computer Alternatively, we can use the web-based IGV to visualize the data.
 
-Go to https://igv.org/app/, select genome as sacCer3, and upload file via `Tracks > local file...`, and select the `MSN24_ESR_t20vst0_treat_pileup.bedgraph` (by default saved to \~/Desktop/Genomic_Data_Analysis/Analysis/ChIP). You can also upload the .bed file in the same folder.
+Go to https://igv.org/app/, select genome as sacCer3, and upload file via `Tracks > local file...`, and select the `MSN24_ESR_t20vst0_treat_pileup.bedgraph` (by default saved to `~/Desktop/Genomic_Data_Analysis/Analysis/ChIP`). You can also upload the .bed file in the same folder.
 
 ## Downstream Analysis
 
@@ -708,7 +678,7 @@ View(streme_tomtom_msn24_ChIP)
 
 # Questions
 
-1.  Based on the results obtained from the MACS2 analysis, what can you infer about the genomic regions where Msn2 is binding?
+1.  Based on the results obtained from the macs3 analysis, what can you infer about the genomic regions where Msn2 is binding?
 
 2.  If you were designing a ChIP-seq experiment to study Msn2 binding under different conditions, what factors would you consider in your experimental design
 
