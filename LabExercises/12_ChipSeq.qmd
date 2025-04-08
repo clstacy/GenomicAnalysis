@@ -95,7 +95,7 @@ For today's exercise, the software Model-based Analysis of ChIP-seq (MACS) will 
 
 ### FASTQ files
 
-We will be analyzing paired-end FASTQ files from the publication <https://doi.org/10.1093/nar/gku176>, with experiment SRA accession SRP033438. Specifically, we will be comparing data from time 0 minutes (SRR1181480) and time 20 minutes (SRR1181481) post glucose to glycerol shift, an environment induces an environmental stress response in yeast.
+We will be analyzing paired-end FASTQ files from the publication <https://doi.org/10.1093/nar/gku176>, with experiment SRA accession SRP033438. Specifically, we will be comparing data from time 0 minutes (SRR1181480) and time 20 minutes (SRR1181481) post glucose to glycerol shift, an environment that induces an environmental stress response in yeast.
 
 #### Two options for downloading the data:
 
@@ -334,11 +334,11 @@ Now, we are able to call peaks with macs3.
 To run macs3 to we need to supply:
 
 ```         
-1. A BAM file to find enriched regions in. (specified after -t)
+1. A BAM file to find enriched regions in. (tfile)
   a. this is the only REQUIRED parameter for MACS
-2. A Name for peak calls (specified after –name).
-3. An output folder to write peaks into (specified after –outdir).
-4. Optionally, but highly recommended, we can identify a control to compare to (specified after –c).
+2. A Name for peak calls (name).
+3. An output folder to write peaks into (outdir).
+4. Optionally, but highly recommended, we can identify a control to compare to (cfile).
 ```
 
 In this analysis, we only need to do a single call to macs3 because we only have one treatment sample and one control sample. If we had more samples, we'd want to run macs3 for every sample.
