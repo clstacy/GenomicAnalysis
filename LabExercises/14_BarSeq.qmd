@@ -10,7 +10,6 @@ editor_options:
     wrap: 72
 ---
 
-
 last updated: `r Sys.Date()`
 
 ```{r setup, include=FALSE}
@@ -20,16 +19,21 @@ set.seed("1492")
 
 # Description
 
-This exercise introduces analysis for experiments that use a genome-wide screen. This example is based on a CRISPR-based knockout screen in yeast, but similar principles apply to other types of screens (e.g., RNAi, overexpression, Tn-Seq). 
+This exercise introduces analysis for experiments that use a genome-wide
+screen. This example is based on a CRISPR-based knockout screen in
+yeast, but similar principles apply to other types of screens (e.g.,
+RNAi, overexpression, Tn-Seq).
 
 # Learning Outcomes
 
 At the end of this exercise, you should be able to:
 
 -   Describe the data generated when using genome-wide screen.
--   Describe the analysis steps of typical analysis workflows for genome-wide screens.
--   Utilize the edgeR package to identify genes with 
--   Interpret biological significance of the results from a genome-wide screen.
+-   Describe the analysis steps of typical analysis workflows for
+    genome-wide screens.
+-   Utilize the edgeR package to identify genes with
+-   Interpret biological significance of the results from a genome-wide
+    screen.
 
 # Getting Things Setup
 
@@ -58,33 +62,37 @@ library(tidyverse)
 library(purrr)
 library(webshot2)
 library(reactable)
-
 library(GenomicAlignments)
 ```
 
 # Load the Data
 
-The data we will be using is a CRISPR knockout screen in yeast. This data is a subset of an upcoming publication from our lab. For analysis, we need a count matrix of the number of reads that map to each guide (and thus gene) in the yeast (pan)genome.
+The data we will be using is a CRISPR knockout screen in yeast. This
+data is a subset of an upcoming publication from our lab. For analysis,
+we need a count matrix of the number of reads that map to each guide
+(and thus gene) in the yeast (pan)genome.
 
-What do we need to analyze CRISPR screen data?
-  - Sequencing (FASTQ or BAM) files
-  - Guide sequences (FASTA) files
-    - Often need to convert a text file to fasta format.
+What do we need to analyze CRISPR screen data? - Sequencing (FASTQ or
+BAM) files - Guide sequences (FASTA) files - Often need to convert a
+text file to fasta format.
 
 ## Raw Sequencing Results
 
-Any type of genome-wide screen will generate a large amount of raw sequencing data in the form FASTQ files. Similar to RNAseq, these FASTQ files need to be processed to generate a count matrix, which contains the number of reads that map to each guide or gene in the screen. 
+Any type of genome-wide screen will generate a large amount of raw
+sequencing data in the form FASTQ files. Similar to RNAseq, these FASTQ
+files need to be processed to generate a count matrix, which contains
+the number of reads that map to each guide or gene in the screen.
 
 We will work with **mapped BAM** files in this exercise for simplicity.
 
 ```{r}
 # Download CRISPR guide sequences library
-url_guides <- "https://raw.githubusercontent.com/clstacy/CRISPR_screen/main/CRISPR_guides.csv"
+url_guides <- "https://github.com/clstacy/GenomicAnalysis/raw/main/Reference/CRISPR_gRNA_seqs.csv"
 
 # Create directories for the reference and index files
 if (!dir.exists("~/Desktop/Genomic_Data_Analysis/CRISPR_screen")) {
-    dir.create("~/Desktop/Genomic_Data_Analysis/CRISPR_screen/reference",
-               recursive = TRUE)
+  dir.create("~/Desktop/Genomic_Data_Analysis/CRISPR_screen/reference",
+             recursive = TRUE)
   dir.create("~/Desktop/Genomic_Data_Analysis/CRISPR_screen/index",
              recursive = TRUE)
 }
@@ -98,6 +106,7 @@ CRISPR_guides[1:2, ]
 ```
 
 ## Prepare Reference Guide Library for Indexing and Mapping
+
 ```{r}
 # Convert the guide sequences to a DNAStringSet object
 sgRNAs <- DNAStringSet(CRISPR_guides$seq)
@@ -110,6 +119,7 @@ writeXStringSet(sgRNAs, "~/Desktop/Genomic_Data_Analysis/CRISPR_screen/index/sgR
 ```
 
 ## Building the Index
+
 ```{r}
 buildindex("~/Desktop/Genomic_Data_Analysis/CRISPR_screen/index/sgRNAs.fa",
            "~/Desktop/Genomic_Data_Analysis/CRISPR_screen/index/",
@@ -118,17 +128,22 @@ buildindex("~/Desktop/Genomic_Data_Analysis/CRISPR_screen/index/sgRNAs.fa",
 
 ## Download BAM files
 
-For the sake of time, we start with BAM files that have already been mapped to our **sgRNAs** reference.
+For the sake of time, we start with BAM files that have already been
+mapped to our **sgRNAs** reference.
 
-Download the BAM files from the course folder `CRISPR_screen/data/bam/` and place them here:
+**Download the BAM files from the course folder
+`Data Files/CRISPR_screen/BAM/` (link:**
+[OneDrive](https://uark-my.sharepoint.com/:f:/r/personal/clstacy_uark_edu/Documents/Genomic%20Analysis%20(BIOL5800V-CEMB5900V)/Data%20Files/CRISPR_screen/BAM?csf=1&web=1&e=cYwb0L))
+**and move them to the folder shown below:**
+
 ```{r}
 if (!dir.exists("~/Desktop/Genomic_Data_Analysis/CRISPR_screen/bam")) {
     dir.create("~/Desktop/Genomic_Data_Analysis/CRISPR_screen/bam")
 }
 ```
 
-
 ## Quantify Guide Counts with Aligned Reads
+
 ```{r}
 # bam_files <- dir(path = "~/Desktop/Genomic_Data_Analysis/CRISPR_screen/bam", pattern = "*.bam$", full.names = TRUE)
 # 
@@ -184,6 +199,7 @@ system.time({
 ```
 
 # Prepare count data
+
 ```{r}
 # ## Load count data from online
 # ## Uncomment the following line if you ran into ##
@@ -258,14 +274,14 @@ y <- DGEList(
 y
 ```
 
-
 # Exploratory Data Analysis
 
 Exploratory data analysis (EDA) helps us spot potential issues.
 
 ## Check distribution of Guide Data
 
-An example approach is to look at the total number of nonzero guides per sample.
+An example approach is to look at the total number of nonzero guides per
+sample.
 
 ```{r}
 # Let's quickly check how many guides are detected in each sample:
@@ -289,20 +305,20 @@ ggplot(df_nonzero, aes(x = Sample, y = Guides)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
 ```
 
-
 ## Check uniformity across guides
 
-The **Gini index** is a measure of inequality in a distribution, first developed in economics, it has proven very useful for detecting uniformity of guides in a screen. 
+The **Gini index** is a measure of inequality in a distribution, first
+developed in economics, it has proven very useful for detecting
+uniformity of guides in a screen.
 
-A Gini index of 0 indicates perfect equality, while a Gini index of 1 indicates perfect inequality. 
+A Gini index of 0 indicates perfect equality, while a Gini index of 1
+indicates perfect inequality.
 
-In the context of guide counts, a low Gini index indicates that the guides are evenly distributed across samples, while a high Gini index indicates that some guides are much more abundant than others.
+In the context of guide counts, a low Gini index indicates that the
+guides are evenly distributed across samples, while a high Gini index
+indicates that some guides are much more abundant than others.
 
 ```{r}
-# remove control guides
-# d.raw <- d[!d$genes$genes=="intergenic", ]
-
-
 gini(y$counts)
 
 boxplot(gini(y$counts) ~ rownames(y$samples), ylab = "Gini Indices", xlab = "",
@@ -316,7 +332,6 @@ gini_df <- tibble(
   Gini = guide_gini
 )
 
-# Instead of a single boxplot, we can do a bar chart or point chart since there's one Gini per sample.
 
 ggplot(gini_df, aes(x = Sample, y = Gini)) +
   geom_col(fill = "pink") +
@@ -329,15 +344,27 @@ ggplot(gini_df, aes(x = Sample, y = Gini)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-
 # Data Preprocessing
 
-Guides lacking an appreciable numbber of reads in any sample should normally be excluded from downstream analyses. There are multiple rationales for doing so.
-  - Biologically, guides that are not observed at a biologically relevant level in any condition are deemed uninteresting and are consequently disregarded. 
-  - From a statistical standpoint, the elimination of guides with low counts enhances the reliability of estimating the mean-variance relationship in the data and reduces the number of statistical tests required for subsequent analyses focused on differential abundance.
+Guides lacking an appreciable numbber of reads in any sample should
+normally be excluded from downstream analyses. There are multiple
+rationales for doing so. - Biologically, guides that are not observed at
+a biologically relevant level in any condition are deemed uninteresting
+and are consequently disregarded. - From a statistical standpoint, the
+elimination of guides with low counts enhances the reliability of
+estimating the mean-variance relationship in the data and reduces the
+number of statistical tests required for subsequent analyses focused on
+differential abundance.
 
 ## Filtering
-For filtering, guides with low expression were filtered out, retaining as many guides as possible with meaningful counts. This was achieved using the filterByExpr() function in the edgeR package, a tool commonly applied in RNA-seq experiments for automated gene filtering. Initially, the count matrix contained 29089 guides. After applying filterByExpr(), 6914 guides (24%%) were removed due to their low presence, leaving 22,175 guides for further analysis.
+
+For filtering, guides with low expression were filtered out, retaining
+as many guides as possible with meaningful counts. This was achieved
+using the filterByExpr() function in the edgeR package, a tool commonly
+applied in RNA-seq experiments for automated gene filtering. Initially,
+the count matrix contained 29089 guides. After applying filterByExpr(),
+6914 guides (24%%) were removed due to their low presence, leaving
+22,175 guides for further analysis.
 
 ```{r}
 # Filter out low abundance guides
@@ -357,8 +384,11 @@ unique_genes <- unique(y.filtered$genes)[[1]]
 length(unique_genes)
 ```
 
-It’s worth noting that `filterByExpr()` often retains only one guide per gene, which is sub optimal for CRISPR screens, where the collective behavior of multiple guides targeting the same gene is essential for validation. This screen has high abundance of most guide, which is often not the case.
-
+It's worth noting that `filterByExpr()` often retains only one guide per
+gene, which is sub optimal for CRISPR screens, where the collective
+behavior of multiple guides targeting the same gene is essential for
+validation. This screen has high abundance of most guide, which is often
+not the case.
 
 ```{r}
 # Quick look at how many sgRNAs remain per gene:
@@ -381,41 +411,7 @@ ggplot(dist_df, aes(x = sgRNA_count, y = freq)) +
 ```
 
 ```{r}
-# # barplot(nsgrna, col = "#FF9999", ylim = c(0, 5000), border = NA, main = "The distribution of number \nof sgRNAs per gene \n (After filtering)")
-# ```
-# 
-# 
 # We can check the distribution of counts before and after filtering:
-# ```{r}
-# # Inspect distributions based on filtering approach 
-# x <- y
-# nsamples <- ncol(x)
-# col.density <- RColorBrewer::brewer.pal(nsamples, "Paired")
-# par(mfrow = c(1, 2))
-# samplenames <- colnames(x)
-# cpm <- cpm(x)
-# lcpm <- cpm(x, log = TRUE)
-# plot(density(lcpm[, 1], bw = 0.4), col = col.density[1], lwd = 2, ylim = c(0, 1),
-#     las = 2, main = "", xlab = "")
-# title(main = "A. Raw data", xlab = "Log-cpm")
-# for (i in 2:nsamples) {
-#     den <- density(lcpm[, i], bw = 0.4)
-#     lines(den$x, den$y, col = col.density[i], lwd = 2)
-# }
-# legend("topright", samplenames, text.col = col.density, bty = "n")
-# 
-# x <- y.filtered
-# cpm <- cpm(x)
-# lcpm <- cpm(x, log = TRUE)
-# plot(density(lcpm[, 1], bw = 0.4), col = col.density[1], lwd = 2, ylim = c(0, 1),
-#     las = 2, main = "", xlab = "")
-# title(main = "B. Filtered data", xlab = "Log-cpm")
-# for (i in 2:nsamples) {
-#     den <- density(lcpm[, i], bw = 0.4)
-#     lines(den$x, den$y, col = col.density[i], lwd = 2)
-# }
-# legend("topright", samplenames, text.col = col.density, bty = "n")
-
 
 nsamples <- ncol(y)
 col.density <- RColorBrewer::brewer.pal(nsamples, "Paired")
@@ -442,7 +438,6 @@ for (i in 2:nsamples_filt) {
 }
 legend("topright", colnames(y.filtered$counts), text.col = col.density_filt, bty = "n", cex = 0.6)
 ```
-
 
 ```{r}
 # TMM Normalize
@@ -474,6 +469,7 @@ legend("bottomleft",
 ```
 
 Check the normalized data using MD plots
+
 ```{r}
 # par(mfrow = c(3, 2))
 # for (i in 1:6) {
@@ -494,11 +490,18 @@ for (i in 1:ncol(yy$counts)) {
 }
 ```
 
-For a good quality, we expect the majority of the counts to be concentrated near the zero log-fold change line. However, this is rarely true for CRISPR experiments due to the sparse nature of CRISPR screen counts. The diagonal lines in the lower-left portion of the plot correspond to guides with counts of very low numbers. And it is typical for treated samples to observe a positive skew, with a number of very highly upregulated guides in the upper right of the plots. 
+For a good quality, we expect the majority of the counts to be
+concentrated near the zero log-fold change line. However, this is rarely
+true for CRISPR experiments due to the sparse nature of CRISPR screen
+counts. The diagonal lines in the lower-left portion of the plot
+correspond to guides with counts of very low numbers. And it is typical
+for treated samples to observe a positive skew, with a number of very
+highly upregulated guides in the upper right of the plots.
 
 # Differential Abundance Analysis (Guides)
 
 ## Create Design Matrix
+
 ```{r}
 yy$samples$group <- factor(yy$samples$group, levels = c("Lab_NoStress", "Lab_NaCl", "Oak_NoStress", "Oak_NaCl"))
 design <- model.matrix(~0 + group, data = yy$samples)
@@ -506,6 +509,7 @@ design
 ```
 
 ## Estimate Dispersion
+
 ```{r}
 yy.norm <- estimateDisp(yy, design)
 yy.norm$common.dispersion
@@ -517,7 +521,11 @@ plotBCV(yy.norm)
 bcv <- sqrt(yy.norm$common.dispersion)
 bcv
 ```
-A BCV below 0.3 is quite typical for well-controlled samples of an isogenic background. The trended dispersion shows that when the abundance gets higher, the variation decreases. At low logCPM, the dispersion is very large.
+
+A BCV below 0.3 is quite typical for well-controlled samples of an
+isogenic background. The trended dispersion shows that when the
+abundance gets higher, the variation decreases. At low logCPM, the
+dispersion is very large.
 
 ## Fit the model
 
@@ -527,6 +535,7 @@ plotQLDisp(fit)
 ```
 
 ## Create contrast matrix
+
 ```{r}
 my.contrasts <- makeContrasts(
   Lab_SaltvsNone = (groupLab_NaCl - groupLab_NoStress),
@@ -539,17 +548,17 @@ my.contrasts <- makeContrasts(
 my.contrasts
 ```
 
-## Helper Functions for Analysis
+## Helper Functions
+
+These are used below for analyzing and plotting each contrast
+
 ```{r}
 # 1) Convert topTags output to a consistent format.
 format_topTags <- function(qlf_result, comparison_name) {
   df <- topTags(qlf_result, n = Inf, sort.by = "PValue")$table %>%
     mutate(comparison = comparison_name) %>%
-    rename(
-      log2FoldChange = logFC,
-      pvalue         = PValue,
-      gene_symbol    = genes,
-      adjusted_pvalue= FDR
+    rename( log2FoldChange = logFC, pvalue  = PValue,
+      gene_symbol = genes, adjusted_pvalue= FDR
     ) %>%
     drop_na()
   return(df)
@@ -559,11 +568,10 @@ format_topTags <- function(qlf_result, comparison_name) {
 volcano_plot <- function(df, title) {
   # Label significance
   df <- df %>% mutate(diffabundant = case_when(
-    adjusted_pvalue > 0.05                ~ "Not Significant",
-    (log2FoldChange >= 1)                & adjusted_pvalue <= 0.05 ~ "Up",
-    (log2FoldChange <= -1)               & adjusted_pvalue <= 0.05 ~ "Down",
-    TRUE ~ "Pass p-value cutoff"
-  ))
+    adjusted_pvalue > 0.05  ~ "Not Significant",
+    (log2FoldChange >= 1) & adjusted_pvalue <= 0.05 ~ "Up",
+    (log2FoldChange <= -1) & adjusted_pvalue <= 0.05 ~ "Down",
+    TRUE ~ "Pass p-value cutoff"))
 
   # Add gene names for top hits
   # We pick top 20 up and top 20 down by absolute fold change.
@@ -574,42 +582,25 @@ volcano_plot <- function(df, title) {
 
   df$delabel <- ifelse(df$gene_symbol %in% top_genes$gene_symbol, df$GENENAME, NA)
 
-  ggplot(
-    data = df,
-    aes(
-      x     = log2FoldChange,
-      y     = -log10(adjusted_pvalue),
-      col   = diffabundant,
-      label = delabel
-    )
-  ) +
+  ggplot(data = df,aes(x = log2FoldChange, y = -log10(adjusted_pvalue),
+      col = diffabundant, label = delabel )) +
     geom_point() +
     theme_minimal() +
     ggrepel::geom_text_repel(max.overlaps = Inf, size = 2) +
-    scale_color_manual(values = c(
-      "Down"                 = "blue",
-      "Up"                   = "red",
-      "Pass p-value cutoff"  = "gray",
-      "Not Significant"      = "black"
-    )) +
+    scale_color_manual(values = c( "Down" = "blue", "Up" = "red",
+      "Pass p-value cutoff" = "gray", "Not Significant" = "black")) +
     geom_vline(xintercept = c(-1, 1), color = "darkred") +
     geom_hline(yintercept = -log10(0.05), color = "darkred") +
-    labs(
-      title = title,
-      color = "Abundance Change",
-      x     = "log2 Fold Change",
-      y     = "-log10(Adjusted p-value)"
-    )
+    labs(title = title, color = "Abundance Change",
+      x = "log2 Fold Change", y = "-log10(Adjusted p-value)" )
 }
 
 # 3) A convenience function to run the test, reformat, annotate, and plot.
 run_contrast_and_plot <- function(fit, contrast_matrix, contrast_name, plot_title) {
-  # Run QL F-test
+  # Run QLF-test
   qlf <- glmQLFTest(fit, contrast = contrast_matrix)
-
   # Format topTags results
   df <- format_topTags(qlf, contrast_name)
-
   # Annotate with gene info from org.Sc.sgd.db
   df <- df %>%
     left_join(
@@ -617,22 +608,19 @@ run_contrast_and_plot <- function(fit, contrast_matrix, contrast_name, plot_titl
         org.Sc.sgd.db,
         keys = df$gene_symbol,
         columns = c("GENENAME", "DESCRIPTION")
-      ),
-      by = c("gene_symbol" = "ORF")
-    ) %>%
+      ), by = c("gene_symbol" = "ORF") ) %>%
     distinct()
-
+  
   # Volcano plot
   vplot <- volcano_plot(df, plot_title)
-
   return(list(results = df, plot = vplot))
 }
 ```
 
-
 # Test for differential Guide Abundance
 
 ## 1.) Lab strain NaCl vs No Stress
+
 ```{r, warning=FALSE}
 lab_salt <- run_contrast_and_plot(
   fit,
@@ -641,15 +629,13 @@ lab_salt <- run_contrast_and_plot(
   "Lab Strain: Salt vs No Stress"
 )
 
-lab_salt$plot  # display volcano
+lab_salt$plot  # display volcano plot
 head(lab_salt$results)
 ```
 
+Let's look at the Lab strain salt vs control, to see which guides show
+differential abundance.
 
-
-
-
-Let's look at the Lab strain salt vs control, to see which guides show differential abundance.
 ```{r}
 # test for differential abundance for this contrast
 qlf.Lab.saltResponse <- glmQLFTest(fit, contrast = my.contrasts[, 1])
@@ -658,11 +644,11 @@ qlf.Lab.saltResponse <- glmQLFTest(fit, contrast = my.contrasts[, 1])
 topTags.Lab.saltResponse <- topTags(qlf.Lab.saltResponse, n = Inf, sort.by = "PValue")$table |>
   mutate(comparison = "Lab_SaltvsNone")
 
-
 topTags.Lab.saltResponse |> View()
 ```
 
 Visualize: Volcano Plot
+
 ```{r}
 # de <- topTags.Lab.saltResponse[complete.cases(topTags.Lab.saltResponse), ]
 # colnames(de)[colnames(de) == "logFC"] <- "log2FoldChange"
@@ -705,7 +691,9 @@ Visualize: Volcano Plot
 #   ggtitle("Lab Strain: Salt vs No Stress Guides") +
 #   labs(color = "Abundance Change")
 ```
+
 ## 2.) Oak strain NaCl vs No Stress
+
 ```{r, warning=FALSE}
 oak_salt <- run_contrast_and_plot(
   fit,
@@ -720,7 +708,8 @@ head(oak_salt$results)
 
 ## 3.) Lab vs Oak: Difference in Salt Effect Between Strains
 
-We can also look for guide differences for salt stress when we compare difference in strain responses to stress.
+We can also look for guide differences for salt stress when we compare
+difference in strain responses to stress.
 
 ```{r, warning=FALSE}
 oak_vs_lab <- run_contrast_and_plot(
@@ -735,18 +724,26 @@ head(oak_vs_lab$results)
 ```
 
 ## Save Outputs to Text Files
+
 ```{r}
 write.csv(lab_salt$results,     file = "Lab_salt_response.csv",     row.names = TRUE)
 write.csv(oak_salt$results,     file = "Oak_salt_response.csv",     row.names = TRUE)
 write.csv(oak_vs_lab$results,   file = "Lab_vs_Oak_salt_response.csv", row.names = TRUE)
 ```
 
-
 # Differential Abundance Analysis (Gene-Level)
 
-The above analysis is very similar to what we have done before with edgeR, but the differential abudance was measured **at the guide level**, rather than the gene level, which is often the level of interest.
+The above analysis is very similar to what we have done before with
+edgeR, but the differential abudance was measured **at the guide
+level**, rather than the gene level, which is often the level of
+interest.
 
-The edgeR package includes a function called `fry()` that can be used to perform differential abundance analysis at the **gene level**. This function takes the guide-level results and aggregates them to the gene level, allowing us to identify genes that are differentially abundant across samples. Note it only tests for significance of direction, and no estimation of fold change is performed.
+The edgeR package includes a function called `fry()` that can be used to
+perform differential abundance analysis at the **gene level**. This
+function takes the guide-level results and aggregates them to the gene
+level, allowing us to identify genes that are differentially abundant
+across samples. Note it only tests for significance of direction, and no
+estimation of fold change is performed.
 
 ```{r}
 # Create a list of genes with sgRNA indices for the 'fry' function
@@ -829,7 +826,9 @@ head(fryLabvsOak_SaltvsNone)
 
 # Functional Enrichment Analysis
 
-We can perform functional enrichment analysis on the differentially abundant genes using the `clusterProfiler` package, as we have done before.
+We can perform functional enrichment analysis on the differentially
+abundant genes using the `clusterProfiler` package, as we have done
+before.
 
 ```{r}
 DE_genes_list <- list(
@@ -861,6 +860,7 @@ GO_CRISPR_results |>
 ```
 
 ## Plot GO Enrichment Results
+
 ```{r}
 dotplot(GO_CRISPR_results)
 ```
@@ -885,6 +885,7 @@ GO_CRISPR_results %>%
     facet_wrap(~Cluster, ncol=2) +
     theme_bw()
 ```
+
 ```{r}
 ggVennDiagram::ggVennDiagram(DE_genes_list,
               # category.names = c("msn24_EtOH_upregulated", "[GIVE_NAME]")
@@ -895,6 +896,7 @@ ggVennDiagram::ggVennDiagram(DE_genes_list,
 ```
 
 System information for reproducibility:
+
 ```{r}
 pander::pander(sessionInfo())
 ```
