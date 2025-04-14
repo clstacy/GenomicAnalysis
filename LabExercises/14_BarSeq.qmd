@@ -243,10 +243,7 @@ counts <- list()
 
 ```{r}
 # If needed, load the count data from a saved CSV instead:
-# CRISPR_screen_counts <- read_csv("https://github.com/clstacy/GenomicAnalysis/raw/main/Reference/CRISPR_gRNA_seqs.csv")
-
-
-#data/CRISPR_screen_counts.csv", header=TRUE, row.names=1)
+CRISPR_screen_counts2 <- readr::read_csv("https://github.com/clstacy/GenomicAnalysis/raw/main/Data/CRISPR_screen/Counts/CRISPR_screen_counts.csv")
 
 design_matrix <- data.frame(
   sample = colnames(CRISPR_screen_counts),
