@@ -43,11 +43,11 @@ As usual, make sure we have the right packages for this exercise
 if (!require("pak")) install.packages("pak"); library(pak)
 
 # let's load all of the files we were using and want to have again today
-pak(c("statmod", # required dependency, need to load manually on some macOS versions.
-    "purrr", # for working with lists (beautify column names)
-    "webshot2", # allow for pdf of output table.
-    "reactable") # for pretty tables.
-)
+# pak(c("statmod", # required dependency, need to load manually on some macOS versions.
+#     "purrr", # for working with lists (beautify column names)
+#     "webshot2", # allow for pdf of output table.
+#     "reactable") # for pretty tables.
+# )
 
 # We also need these Bioconductor packages today.
 pak(c("edgeR", "AnnotationDbi", "org.Sc.sgd.db"))
@@ -59,10 +59,11 @@ library(edgeR)
 library(AnnotationDbi)
 library(org.Sc.sgd.db)
 library(tidyverse)
-library(purrr)
-library(webshot2)
-library(reactable)
+# library(purrr)
+# library(webshot2)
+# library(reactable)
 library(GenomicAlignments)
+library(Rsubread)
 ```
 
 # Load the Data
@@ -101,8 +102,10 @@ if (!dir.exists("~/Desktop/Genomic_Data_Analysis/CRISPR_screen")) {
 download.file(url_guides, file.path("~/Desktop/Genomic_Data_Analysis/CRISPR_screen/reference", basename(url_guides)))
 
 # load and create an index of the guide sequences for mapping
-CRISPR_guides <- read_csv("~/Desktop/Genomic_Data_Analysis/CRISPR_screen/reference/CRISPR_guides.csv", col_names = TRUE)
-CRISPR_guides[1:2, ]
+CRISPR_guides <- read_csv("~/Desktop/Genomic_Data_Analysis/CRISPR_screen/reference/CRISPR_gRNA_seqs.csv", col_names = FALSE)
+colnames(CRISPR_guides) <- c("gRNA", "seq", "gene")
+
+CRISPR_guides[101:102, ]
 ```
 
 ## Prepare Reference Guide Library for Indexing and Mapping
@@ -110,7 +113,7 @@ CRISPR_guides[1:2, ]
 ```{r}
 # Convert the guide sequences to a DNAStringSet object
 sgRNAs <- DNAStringSet(CRISPR_guides$seq)
-names(sgRNAs) <- CRISPR_guides$UID
+names(sgRNAs) <- CRISPR_guides$gRNA
 sgRNAs
 
 # write the DNAStringSet object to a FASTA file
@@ -121,8 +124,8 @@ writeXStringSet(sgRNAs, "~/Desktop/Genomic_Data_Analysis/CRISPR_screen/index/sgR
 ## Building the Index
 
 ```{r}
-buildindex("~/Desktop/Genomic_Data_Analysis/CRISPR_screen/index/sgRNAs.fa",
-           "~/Desktop/Genomic_Data_Analysis/CRISPR_screen/index/",
+buildindex(basename = "~/Desktop/Genomic_Data_Analysis/CRISPR_screen/index",
+           reference = "~/Desktop/Genomic_Data_Analysis/CRISPR_screen/index/sgRNAs.fa",
            indexSplit = FALSE)
 ```
 
@@ -182,7 +185,6 @@ bam_files <- dir(
 counts <- list()
 
 # Read each BAM file and tally up guides.
-system.time({
   for (i in seq_along(bam_files)) {
     temp <- readGAlignments(bam_files[i])
     counts[[i]] <- data.frame(table(seqnames(temp)), row.names = "Var1")
@@ -195,7 +197,6 @@ system.time({
     "Oak_NaCl_Rep1", "Oak_NaCl_Rep2", "Oak_NaCl_Rep3",
     "Oak_NoStress_Rep1", "Oak_NoStress_Rep2", "Oak_NoStress_Rep3"
   )
-})
 ```
 
 # Prepare count data
@@ -242,7 +243,10 @@ system.time({
 
 ```{r}
 # If needed, load the count data from a saved CSV instead:
-# CRISPR_screen_counts <- read_csv("data/CRISPR_screen_counts.csv", header=TRUE, row.names=1)
+# CRISPR_screen_counts <- read_csv("https://github.com/clstacy/GenomicAnalysis/raw/main/Reference/CRISPR_gRNA_seqs.csv")
+
+
+#data/CRISPR_screen_counts.csv", header=TRUE, row.names=1)
 
 design_matrix <- data.frame(
   sample = colnames(CRISPR_screen_counts),
