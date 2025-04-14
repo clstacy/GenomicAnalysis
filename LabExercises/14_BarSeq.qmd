@@ -64,6 +64,7 @@ library(tidyverse)
 # library(reactable)
 library(GenomicAlignments)
 library(Rsubread)
+library(clusterProfiler)
 ```
 
 # Load the Data
@@ -148,34 +149,6 @@ if (!dir.exists("~/Desktop/Genomic_Data_Analysis/CRISPR_screen/bam")) {
 ## Quantify Guide Counts with Aligned Reads
 
 ```{r}
-# bam_files <- dir(path = "~/Desktop/Genomic_Data_Analysis/CRISPR_screen/bam", pattern = "*.bam$", full.names = TRUE)
-# 
-# 
-# counts <- list()
-# mapping_results <- list()
-# 
-# system.time({
-# # Extract counts from each bam file using 
-# for (i in 1:length(bam_files)) {
-#     # mapping_results[[i]] <- align("./index/GeCKO", fastqs[i], output_file = gsub(".fastq.gz",
-#     #     ".bam", fastqs[i]), nthreads = 4, unique = TRUE, nBestLocations = 1, type = "DNA",
-#     #     TH1 = 1, maxMismatches = 0, indels = 0)
-#     temp <- readGAlignments(bam_files[i])
-#     counts[[i]] <- data.frame(table(seqnames(temp#[width(temp) == "20"]
-#                                              )), row.names = "Var1")
-# }
-# 
-# CRISPR_screen_counts <- do.call(cbind, counts)
-# colnames(CRISPR_screen_counts) <- c("Lab_NaCl_Rep1", "Lab_NaCl_Rep2","Lab_NaCl_Rep3",
-#                                     "Lab_NoStress_Rep1", "Lab_NoStress_Rep2", "Lab_NoStress_Rep3",
-#                                     "Oak_NaCl_Rep1", "Oak_NaCl_Rep2", "Oak_NaCl_Rep3",
-#                                     "Oak_NoStress_Rep1", "Oak_NoStress_Rep2", "Oak_NoStress_Rep3")
-# #write.table(CRISPR_screen_counts, "CRISPR_screen_counts.txrt", sep = "\t")
-# })
-
-
-
-
 bam_files <- dir(
   path = "~/Desktop/Genomic_Data_Analysis/CRISPR_screen/bam",
   pattern = "*.bam$",
@@ -202,48 +175,8 @@ counts <- list()
 # Prepare count data
 
 ```{r}
-# ## Load count data from online
-# ## Uncomment the following line if you ran into ##
-# ## generating counts from the bam files ##
-# 
-# # CRISPR_screen_counts <- read_csv("data/CRISPR_screen_counts.csv", header = TRUE, row.names = 1)
-# 
-# design_matrix <- data.frame(
-#   sample = colnames(CRISPR_screen_counts),
-#   condition = c(rep(c("Lab_NaCl", "Lab_NoStress"), each = 3),
-#                 rep(c("Oak_NaCl", "Oak_NoStress"), each = 3)),
-#   replicate = rep(1:3, 4)
-# )
-# 
-# CRISPR_screen_counts_df <- CRISPR_screen_counts |>
-#   tibble::rownames_to_column("sgRNA") |>
-#   mutate(gene = gsub("-[0-9]+$", "", sgRNA), 
-#          .after = sgRNA) %>%
-#   mutate(gene = stringr::str_remove(gene, "core-"))
-# 
-# y = DGEList(counts = as.matrix(CRISPR_screen_counts), 
-#             samples = design_matrix, 
-#             genes = CRISPR_screen_counts_df$gene,
-#             group = design_matrix$condition
-#               #c(rep(c(
-#                       # "A_DBY_None_grp",
-#                       # # "B_DBY_None_grp",
-#                       # "A_DBY_Salt_grp",
-#                       # # "B_DBY_Salt_grp",
-#                       # "A_YPS606_None_grp",
-#                       # # "B_M6_None_grp",
-#                       # "A_YPS606_Salt_grp",
-#                       # # "B_M6_Salt_grp",
-#                       # # "B_M6_None_solo",
-#                       # # "B_M6_Salt_solo"
-#                       # ),3))
-#             )
-# y
-```
-
-```{r}
 # If needed, load the count data from a saved CSV instead:
-CRISPR_screen_counts2 <- readr::read_csv("https://github.com/clstacy/GenomicAnalysis/raw/main/Data/CRISPR_screen/Counts/CRISPR_screen_counts.csv")
+# CRISPR_screen_counts <- readr::read_csv("https://github.com/clstacy/GenomicAnalysis/raw/main/Data/CRISPR_screen/Counts/CRISPR_screen_counts.csv") |> tibble::column_to_rownames("...1")
 
 design_matrix <- data.frame(
   sample = colnames(CRISPR_screen_counts),
@@ -363,7 +296,7 @@ For filtering, guides with low expression were filtered out, retaining
 as many guides as possible with meaningful counts. This was achieved
 using the filterByExpr() function in the edgeR package, a tool commonly
 applied in RNA-seq experiments for automated gene filtering. Initially,
-the count matrix contained 29089 guides. After applying filterByExpr(),
+the count matrix contained 29089 guides. After applying `filterByExpr()`,
 6914 guides (24%%) were removed due to their low presence, leaving
 22,175 guides for further analysis.
 
@@ -413,37 +346,42 @@ ggplot(dist_df, aes(x = sgRNA_count, y = freq)) +
 
 ```{r}
 # We can check the distribution of counts before and after filtering:
+cols <- c("red", "orange", "blue", "skyblue")
 
 nsamples <- ncol(y)
 col.density <- RColorBrewer::brewer.pal(nsamples, "Paired")
 
 # Raw
 cpm_raw <- cpm(y, log = TRUE)
-plot(density(cpm_raw[, 1], bw = 0.4), col = col.density[1], lwd = 2,
+plot(density(cpm_raw[, 1], bw = 0.4), col = cols[factor(y$samples$group)],
+     lwd = 2,
      ylim = c(0, 1), las = 2, main = "A. Raw Data", xlab = "logCPM")
 for (i in 2:nsamples) {
   den <- density(cpm_raw[, i], bw = 0.4)
-  lines(den$x, den$y, col = col.density[i], lwd = 2)
+  lines(den$x, den$y, col = cols[factor(y$samples$group)][i],
+        lwd = 2)
 }
-legend("topright", colnames(y$counts), text.col = col.density, bty = "n", cex = 0.6)
+legend("topright", colnames(y$counts), text.col = cols[factor(y$samples$group)],
+       bty = "n", cex = 0.6)
 
 # Filtered
 nsamples_filt <- ncol(y.filtered)
-col.density_filt <- RColorBrewer::brewer.pal(nsamples_filt, "Dark2")
 cpm_filt <- cpm(y.filtered, log = TRUE)
-plot(density(cpm_filt[, 1], bw = 0.4), col = col.density_filt[1], lwd = 2,
+plot(density(cpm_filt[, 1], bw = 0.4), col = cols[factor(y$samples$group)][1], lwd = 2,
      ylim = c(0, 1), las = 2, main = "B. Filtered Data", xlab = "logCPM")
 for (i in 2:nsamples_filt) {
   den <- density(cpm_filt[, i], bw = 0.4)
-  lines(den$x, den$y, col = col.density_filt[i], lwd = 2)
+  lines(den$x, den$y, col = cols[factor(y$samples$group)][i], lwd = 2)
 }
-legend("topright", colnames(y.filtered$counts), text.col = col.density_filt, bty = "n", cex = 0.6)
+legend("topright", colnames(y.filtered$counts), text.col = cols[factor(y$samples$group)], bty = "n", cex = 0.6)
 ```
 
 ```{r}
 # TMM Normalize
-yy <- y.filtered
-yy$samples$norm.factors <- calcNormFactors(yy, method = "TMM")
+yy <- y.filtered[, order(y.filtered$samples$group, colSums(y.filtered$counts))]
+
+yy$samples$norm.factors <- normLibSizes(yy$counts, method = "TMM")
+
 yy$samples
 ```
 
@@ -460,30 +398,11 @@ legend("bottomleft",
   legend = levels(factor(yy$samples$group)),
   col = cols, pch = 16, cex = 0.8
 )
-# # MDS plot
-# lcpm <- cpm(yy, log = TRUE)
-# cols = c("red", "orange","blue", "lightblue")
-# plotMDS(lcpm, col = cols[factor(yy$samples$group)], main = "MDS plot of filtered and TMM offset-normalised data",
-#     pch = 16, cex = 2)
-# legend("bottomright", legend = levels(factor(yy$samples$group)), col = cols,
-#     pch = 16, cex = 0.8)
 ```
 
 Check the normalized data using MD plots
 
 ```{r}
-# par(mfrow = c(3, 2))
-# for (i in 1:6) {
-#     plotMD(yy, column = i)
-#     abline(h = 0, col = "red", lty = 2, lwd = 2)
-# }
-# 
-# par(mfrow = c(3, 2))
-# for (i in 7:12) {
-#     plotMD(yy, column = i)
-#     abline(h = 0, col = "red", lty = 2, lwd = 2)
-# }
-
 par(mfrow = c(1,3))
 for (i in 1:ncol(yy$counts)) {
   plotMD(yy, column = i)
@@ -491,7 +410,7 @@ for (i in 1:ncol(yy$counts)) {
 }
 ```
 
-For a good quality, we expect the majority of the counts to be
+Ideally, we expect the majority of the counts to be
 concentrated near the zero log-fold change line. However, this is rarely
 true for CRISPR experiments due to the sparse nature of CRISPR screen
 counts. The diagonal lines in the lower-left portion of the plot
@@ -577,7 +496,7 @@ volcano_plot <- function(df, title) {
   # Add gene names for top hits
   # We pick top 20 up and top 20 down by absolute fold change.
   top_genes <- df %>%
-    filter(diffabundant %in% c("Up", "Down")) %>%
+    dplyr::filter(diffabundant %in% c("Up", "Down")) %>%
     group_by(diffabundant) %>%
     slice_max(order_by = abs(log2FoldChange), n = 20)
 
@@ -622,10 +541,13 @@ run_contrast_and_plot <- function(fit, contrast_matrix, contrast_name, plot_titl
 
 ## 1.) Lab strain NaCl vs No Stress
 
-```{r, warning=FALSE}
+Let's look at the Lab strain salt vs control, to see which guides show
+differential abundance.
+
+```{r, warning=FALSE, message=F}
 lab_salt <- run_contrast_and_plot(
   fit,
-  contrast_matrix[, "Lab_SaltvsNone"],
+  my.contrasts[, "Lab_SaltvsNone"],
   "Lab_SaltvsNone",
   "Lab Strain: Salt vs No Stress"
 )
@@ -634,68 +556,10 @@ lab_salt$plot  # display volcano plot
 head(lab_salt$results)
 ```
 
-Let's look at the Lab strain salt vs control, to see which guides show
-differential abundance.
-
-```{r}
-# test for differential abundance for this contrast
-qlf.Lab.saltResponse <- glmQLFTest(fit, contrast = my.contrasts[, 1])
-
-# Get results of test
-topTags.Lab.saltResponse <- topTags(qlf.Lab.saltResponse, n = Inf, sort.by = "PValue")$table |>
-  mutate(comparison = "Lab_SaltvsNone")
-
-topTags.Lab.saltResponse |> View()
-```
-
-Visualize: Volcano Plot
-
-```{r}
-# de <- topTags.Lab.saltResponse[complete.cases(topTags.Lab.saltResponse), ]
-# colnames(de)[colnames(de) == "logFC"] <- "log2FoldChange"
-# colnames(de)[colnames(de) == "PValue"] <- "pvalue"
-# colnames(de)[colnames(de) == "Symbol"] <- "gene_symbol"
-# colnames(de)[colnames(de) == "FDR"] <- "adjusted_pvalue"
-# de$diffabundant <- "Pass p-value cuttoff"
-# de$diffabundant[de$adjusted_pvalue > 0.05] <- "Not Significant"
-# de$diffabundant[de$log2FoldChange < -1 & de$log2FoldChange >= 5 & de$adjusted_pvalue <
-#     0.05] <- "Pass p-value & Log2FC cuttoff"
-# de$diffabundant[de$log2FoldChange >= 1 & de$adjusted_pvalue <= 0.05] <- "Up"
-# de$diffabundant[de$log2FoldChange < -1 & de$adjusted_pvalue <= 0.05] <- "Down"
-# head(de)
-# 
-# de <- de %>%
-#   left_join(AnnotationDbi::select(org.Sc.sgd.db,keys=c(.$genes),columns= c("GENENAME","DESCRIPTION")),by=join_by("genes" == "ORF")) %>%
-#   unique()
-# 
-# g_down <- which(de$log2FoldChange > 1 & de$adjusted_pvalue <= 0.05)
-# g_up <- which(de$log2FoldChange < -1 & de$adjusted_pvalue <= 0.05)
-# de$delabel <- NA
-# de$delabel[c(g_down[1:20], g_up[1:20])] <- de$GENENAME[c(g_down[1:20], g_up[1:20])]
-# ggplot(
-#   data = de,
-#   aes(
-#     x = log2FoldChange,
-#     y = -log10(adjusted_pvalue),
-#     col = diffabundant,
-#     group = genes,
-#     label = delabel
-#   )
-# ) + 
-#   geom_point() + 
-#   #geom_path() + 
-#   theme_minimal() + 
-#   ggrepel::geom_text_repel(max.overlaps = Inf, size =2) +
-#   scale_color_manual(values = c("blue", "black", "gray", "red")) +  
-#   geom_vline(xintercept = c(-1, 1), col = "darkred") + 
-#   geom_hline(yintercept = -log10(0.05), col = "darkred") +
-#   ggtitle("Lab Strain: Salt vs No Stress Guides") +
-#   labs(color = "Abundance Change")
-```
-
 ## 2.) Oak strain NaCl vs No Stress
 
-```{r, warning=FALSE}
+Same analysis, but for the Oak isolate of yeast
+```{r, warning=FALSE, message=F}
 oak_salt <- run_contrast_and_plot(
   fit,
   my.contrasts[, "Oak_SaltvsNone"],
@@ -712,7 +576,7 @@ head(oak_salt$results)
 We can also look for guide differences for salt stress when we compare
 difference in strain responses to stress.
 
-```{r, warning=FALSE}
+```{r, warning=FALSE, message=F}
 oak_vs_lab <- run_contrast_and_plot(
   fit,
   my.contrasts[, "LabvsOak_SaltvsNone"],
@@ -725,11 +589,23 @@ head(oak_vs_lab$results)
 ```
 
 ## Save Outputs to Text Files
-
 ```{r}
-write.csv(lab_salt$results,     file = "Lab_salt_response.csv",     row.names = TRUE)
-write.csv(oak_salt$results,     file = "Oak_salt_response.csv",     row.names = TRUE)
-write.csv(oak_vs_lab$results,   file = "Lab_vs_Oak_salt_response.csv", row.names = TRUE)
+if (!dir.exists("~/Desktop/Genomic_Data_Analysis/CRISPR_screen/results")) {
+  dir.create("~/Desktop/Genomic_Data_Analysis/CRISPR_screen/results",
+             recursive = FALSE)
+}
+
+write.csv(lab_salt$results, 
+          file = "~/Desktop/Genomic_Data_Analysis/CRISPR_screen/results/Lab_salt_response.csv",     
+          row.names = TRUE)
+
+write.csv(oak_salt$results, 
+          file = "~/Desktop/Genomic_Data_Analysis/CRISPR_screen/results/Oak_salt_response.csv",     
+          row.names = TRUE)
+
+write.csv(oak_vs_lab$results, 
+          file = "~/Desktop/Genomic_Data_Analysis/CRISPR_screen/results/Lab_vs_Oak_salt_response.csv", 
+          row.names = TRUE)
 ```
 
 # Differential Abundance Analysis (Gene-Level)
@@ -769,11 +645,11 @@ fryLab_SaltvsNone <- fry(
   design = design,
   contrast = my.contrasts[, "Lab_SaltvsNone"]
 ) |>
-  rownames_to_column("gene_symbol") |>
+  rownames_to_column("gene_symbol") %>%
   left_join(
       AnnotationDbi::select(
         org.Sc.sgd.db,
-        keys = df$gene_symbol,
+        keys = .$gene_symbol,
         columns = c("GENENAME", "DESCRIPTION")
       ),
       by = c("gene_symbol" = "ORF")
@@ -791,11 +667,11 @@ fryOak_SaltvsNone <- fry(
   design = design,
   contrast = my.contrasts[, "Oak_SaltvsNone"]
 ) |>
-  rownames_to_column("gene_symbol") |>
+  rownames_to_column("gene_symbol") %>%
   left_join(
       AnnotationDbi::select(
         org.Sc.sgd.db,
-        keys = df$gene_symbol,
+        keys = .$gene_symbol,
         columns = c("GENENAME", "DESCRIPTION")
       ),
       by = c("gene_symbol" = "ORF")
@@ -804,18 +680,18 @@ fryOak_SaltvsNone <- fry(
 ```
 
 ```{r}
-# Example: run 'fry' on the Lab-vs-Oak contrast
+# fry results for Lab-vs-Oak contrast
 fryLabvsOak_SaltvsNone <- fry(
   y     = yy.norm,
   index = genesymbollist,
   design = design,
   contrast = my.contrasts[, "LabvsOak_SaltvsNone"]
 ) |>
-  rownames_to_column("gene_symbol") |>
+  rownames_to_column("gene_symbol") %>%
   left_join(
       AnnotationDbi::select(
         org.Sc.sgd.db,
-        keys = df$gene_symbol,
+        keys = .$gene_symbol,
         columns = c("GENENAME", "DESCRIPTION")
       ),
       by = c("gene_symbol" = "ORF")
@@ -832,6 +708,7 @@ abundant genes using the `clusterProfiler` package, as we have done
 before.
 
 ```{r}
+# Create a list of DE genes for each contrast
 DE_genes_list <- list(
   LabSalt = lab_salt$results %>%
     dplyr::filter(adjusted_pvalue < 0.05) %>%
@@ -850,9 +727,7 @@ GO_CRISPR_results <- clusterProfiler::compareCluster(
   fun = "enrichGO",
   keyType = "ORF",
   OrgDb = org.Sc.sgd.db,
-  ont   = "BP"#,
-  # pvalueCutoff=1,
-  # qvalueCutoff=1
+  ont   = "BP"
 )
 
 GO_CRISPR_results |>
@@ -888,12 +763,48 @@ GO_CRISPR_results %>%
 ```
 
 ```{r}
-ggVennDiagram::ggVennDiagram(DE_genes_list,
-              # category.names = c("msn24_EtOH_upregulated", "[GIVE_NAME]")
+ggVennDiagram::ggVennDiagram(DE_genes_list
               ) +
   scale_x_continuous(expand = expansion(mult = .2)) +
   scale_fill_distiller(palette = "RdBu"
   )
+```
+
+## GO Enrichment of Missing Guides
+
+Which biological processes are enriched for guides that were excluded from the analysis?
+```{r}
+# GO enrichment of missing guides
+y.missing <- y[!keep.exprs, , keep.lib.sizes = FALSE]
+
+GO_missing_genes <- y.missing$genes %>%
+  unique() %>%
+  pull(genes) %>%
+  clusterProfiler::enrichGO(
+    OrgDb = org.Sc.sgd.db,
+    keyType = "ORF",
+    ont = "BP",
+    pvalueCutoff = 0.05,
+    qvalueCutoff = 0.05
+  ) %>%
+  mutate(richFactor = Count / as.numeric(sub("/\\d+", "", BgRatio)))
+
+GO_missing_genes %>%
+  ggplot(.,
+         showCategory = 10,
+         aes(richFactor, fct_reorder(Description, richFactor))) +
+    geom_segment(aes(xend = 0, yend = Description)) +
+    geom_point(aes(color = p.adjust, size = Count)) +
+    scale_color_gradientn(
+      colours = c("#f7ca64", "#46bac2", "#7e62a3"),
+      trans = "log10",
+      guide = guide_colorbar(reverse = TRUE, order = 1)
+    ) +
+    scale_size_continuous(range = c(2, 10)) +
+    xlab("Rich Factor") +
+    ylab(NULL) +
+    ggtitle("Biological Processes") +
+    theme_bw()
 ```
 
 System information for reproducibility:
