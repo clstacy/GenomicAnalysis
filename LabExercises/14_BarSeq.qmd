@@ -44,7 +44,7 @@ if (!require("pak")) install.packages("pak"); library(pak)
 
 # # We will need these  packages today.
 pak(c("edgeR", "AnnotationDbi", "org.Sc.sgd.db", "GenomicAlignments",
-      "Rsubread", "tidyverse", "clusterProfiler") )
+      "Rsubread", "tidyverse", "clusterProfiler", "ggVennDiagram", "ggrepel") )
 ```
 
 ```{r}
