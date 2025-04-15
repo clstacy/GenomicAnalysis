@@ -544,7 +544,8 @@ lab_salt <- run_contrast_and_plot(
 )
 
 lab_salt$plot  # display volcano plot
-head(lab_salt$results)
+head(lab_salt$results) # show top rows
+View(lab_salt$results) # view entire table
 ```
 
 ## 2.) Oak strain NaCl vs No Stress
@@ -668,6 +669,8 @@ fryOak_SaltvsNone <- fry(
       by = c("gene_symbol" = "ORF")
     ) %>%
     distinct()
+
+head(fryOak_SaltvsNone)
 ```
 
 ```{r}
